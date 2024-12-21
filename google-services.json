@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "836571060958",
+    "project_id": "veggieking",
+    "storage_bucket": "veggieking.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:836571060958:android:df2610b66b46266b42c04f",
+        "android_client_info": {
+          "package_name": "build.gradle"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "836571060958-mfbvkmvi0kbdm2170veivuus20u2u7ud.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC3ADQV34Nf4vc1DRDCFsT-CGTUeJIeFKo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "836571060958-mfbvkmvi0kbdm2170veivuus20u2u7ud.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
