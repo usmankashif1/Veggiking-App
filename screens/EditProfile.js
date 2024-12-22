@@ -154,18 +154,7 @@ const EditProfile = () => {
         >
             {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
                 <View style={styles.formContainer}>
-                    {/* <TouchableOpacity onPress={pickImage} style={styles.profileImageContainer}>
-                        <Image
-                            source={image === null ? images.avatar2 : image}
-                            style={styles.profileImage}
-                        />
-                        <MaterialCommunityIcons
-                            name="pencil-outline"
-                            size={24}
-                            color={COLORS.white}
-                            style={styles.editImageIcon}
-                        />
-                    </TouchableOpacity> */}
+                    {}
 
                     <Input
                         label="Name"
@@ -207,7 +196,7 @@ const EditProfile = () => {
                         onPress={handleSubmit}
                         isLoading={isLoading}
                         isEnable={isEnable}
-                        style={styles.updateButton} // Ensure this style includes necessary changes
+                        style={styles.updateButton} 
                     />
                 </View>
             )}
@@ -244,25 +233,37 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 3.84,
         elevation: 5,
-    },
-    headerIcon: {
-        width: 24,
+        borderBottomLeftRadius: 15,  
+        borderBottomRightRadius: 15, 
+      },
+      headerIconContainer: {
+        width: 40,  
+        height: 40,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: COLORS.white,  
+        borderRadius: 20,  
+        elevation: 3,  
+      },
+      headerIcon: {
+        width: 24,  
         height: 24,
-    },
-    headerTitle: {
+        tintColor: COLORS.primary,  
+      },
+      headerTitle: {
         fontSize: 22,
         fontWeight: 'bold',
         marginLeft: 20,
         color: COLORS.white,
         textTransform: 'capitalize',
-    },
+      },
     formContainer: {
         paddingHorizontal: 16,
     },
     profileImageContainer: {
         alignSelf: 'center',
         marginBottom: 16,
-        marginTop: 20, // Added top margin for the profile image
+        marginTop: 20, 
     },
     profileImage: {
         height: 130,
@@ -278,14 +279,14 @@ const styles = StyleSheet.create({
         borderRadius: 20,
     },
     updateButton: {
-        backgroundColor: COLORS.white, // Changed button color to white
-        borderColor: COLORS.primary, // Optional: Add border color to match the theme
-        borderWidth: 1, // Optional: Add border width for visibility
-        borderRadius: 10, // Rounded corners
-        paddingVertical: 10, // Vertical padding
-        paddingHorizontal: 20, // Horizontal padding
-        alignItems: 'center', // Center the text
-        elevation: 2, // Add shadow for depth
+        backgroundColor: COLORS.white, 
+        borderColor: COLORS.primary, 
+        borderWidth: 1, 
+        borderRadius: 10, 
+        paddingVertical: 10, 
+        paddingHorizontal: 20, 
+        alignItems: 'center', 
+        elevation: 2, 
     },
     error: {
         color: 'red',

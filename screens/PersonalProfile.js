@@ -7,27 +7,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import GeneralService from '../services/general.service';
-import { commonStyles } from '../styles/CommonStyles';
-
-const Header = ({ title }) => {
-  const navigation = useNavigation();
-
-  return (
-    <View style={styles.header}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={commonStyles.header1Icon}>
-        <Image
-          resizeMode='contain'
-          source={icons.arrowLeft}
-          style={styles.headerIcon}
-        />
-      </TouchableOpacity>
-      <Text style={styles.headerTitle}>{title}</Text>
-      <TouchableOpacity onPress={() => navigation.navigate("EditProfile")} style={styles.editButton}>
-        <Text style={styles.editButtonText}>Edit</Text>
-      </TouchableOpacity>
-    </View>
-  );
-};
 
 const PersonalProfile = () => {
   const navigation = useNavigation();
@@ -78,10 +57,29 @@ const PersonalProfile = () => {
     </TouchableOpacity>
   );
 
+  
+  const renderHeader = () => {
+    return (
+      <View style={styles.header}>
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIconContainer}>
+        <Image
+          resizeMode='contain'
+          source={icons.arrowLeft}
+          style={styles.headerIcon}
+        />
+      </TouchableOpacity>
+      <Text style={styles.headerTitle}>My Profile</Text>
+      <TouchableOpacity onPress={() => navigation.navigate("EditProfile")} style={styles.editButton}>
+        <Text style={styles.editButtonText}>Edit</Text>
+      </TouchableOpacity>
+      
+    </View>
+    );
+  };
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
+      {renderHeader()}
       <View style={{ flex: 1, marginHorizontal: 16 }}>
-        <Header title="My Profile" />
         <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
           {renderUserProfileInfo()}
         </ScrollView>
@@ -96,18 +94,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    backgroundColor: COLORS.primary,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.1,
     shadowRadius: 3.84,
-    backgroundColor: '#f44c00',
-    borderBottomLeftRadius: 16,
-    borderBottomRightRadius: 16,
+    elevation: 5,
+    borderBottomLeftRadius: 15,  // Added rounded corner for visual appeal
+    borderBottomRightRadius: 15, // Added rounded corner for visual appeal
   },
-  
+  headerIconContainer: {
+    width: 40,  // Increased size for better tap area
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,  // Background color for the icon
+    borderRadius: 20,  // Rounded corners for the icon container
+    elevation: 3,  // Shadow effect for the icon background
+  },
   headerIcon: {
-    width: 24,
+    width: 24,  // Adjusted size for the icon
     height: 24,
+    tintColor: COLORS.primary,  // Icon color
   },
   headerTitle: {
     fontSize: 22,

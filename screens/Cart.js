@@ -264,32 +264,29 @@ const Cart = ({ navigation }) => {
     }
   }
 
+
+  const renderHeader = () => {
+    return (
+      <View style={styles.header}>
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIconContainer}>
+        <Image
+          resizeMode='contain'
+          source={icons.arrowLeft}
+          style={styles.headerIcon}
+        />
+      </TouchableOpacity>
+      <Text style={styles.headerTitle}>Cart</Text>
+    </View>
+    );
+  };
+  
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'lightGrey' }}>
       <StatusBar hidden={true} />
+      {renderHeader()}
       <View style={cartStyles.header}>
 
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginTop: 20,
-        }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={commonStyles.header1Icon}
-            >
-              <Image
-                resizeMode='contain'
-                source={icons.arrowLeft}
-                style={{ height: 24, width: 24, tintColor: COLORS.black }}
-              />
-            </TouchableOpacity>
-            <Text style={{ marginLeft: 12, fontSize: 17, fontFamily: 'regular', color: '#000' }}>Cart</Text>
-          </View>
 
-        </View>
 
         {
           cartCounter == 0 ? (
@@ -424,6 +421,41 @@ const Cart = ({ navigation }) => {
 }
 
 const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.primary,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+    borderBottomLeftRadius: 15,  // Added rounded corner for visual appeal
+    borderBottomRightRadius: 15, // Added rounded corner for visual appeal
+  },
+  headerIconContainer: {
+    width: 40,  // Increased size for better tap area
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,  // Background color for the icon
+    borderRadius: 20,  // Rounded corners for the icon container
+    elevation: 3,  // Shadow effect for the icon background
+  },
+  headerIcon: {
+    width: 24,  // Adjusted size for the icon
+    height: 24,
+    tintColor: COLORS.primary,  // Icon color
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginLeft: 20,
+    color: COLORS.white,
+    textTransform: 'capitalize',
+  },
   error: {
     color: "red"
   },

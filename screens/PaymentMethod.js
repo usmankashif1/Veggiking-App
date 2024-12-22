@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Image, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Switch, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons';
-import { SIZES, illustrations, images } from '../constants'
+import { SIZES, illustrations, images, icons, COLORS } from '../constants'
 import GeneralService from '../services/general.service';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -95,14 +95,28 @@ const PaymentMethod = ({ route }) => {
     orderPlacement();
   }
 
+  const renderHeader = () => {
+    return (
+      <View style={styles.header}>
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIconContainer}>
+        <Image
+          resizeMode='contain'
+          source={icons.arrowLeft}
+          style={styles.headerIcon}
+        />
+      </TouchableOpacity>
+      <Text style={styles.headerTitle}>Checkout</Text>
+    </View>
+    );
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.container} onScroll={handleScroll} scrollEventThrottle={16}>
           {/* Your existing content here */}
-          <View style={styles.header}>
-            <Text style={styles.headerText}>Checkout</Text>
-          </View>
+      {renderHeader()}
+
           <View style={styles.content}>
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Order Summary</Text>
@@ -226,9 +240,39 @@ const styles = StyleSheet.create({
     paddingBottom: 180,
   },
   header: {
-    backgroundColor: '#f44c00',
-    paddingVertical: 15,
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.primary,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+    borderBottomLeftRadius: 15,  // Added rounded corner for visual appeal
+    borderBottomRightRadius: 15, // Added rounded corner for visual appeal
+  },
+  headerIconContainer: {
+    width: 40,  // Increased size for better tap area
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,  // Background color for the icon
+    borderRadius: 20,  // Rounded corners for the icon container
+    elevation: 3,  // Shadow effect for the icon background
+  },
+  headerIcon: {
+    width: 24,  // Adjusted size for the icon
+    height: 24,
+    tintColor: COLORS.primary,  // Icon color
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginLeft: 20,
+    color: COLORS.white,
+    textTransform: 'capitalize',
   },
   headerText: {
     color: '#ffffff',

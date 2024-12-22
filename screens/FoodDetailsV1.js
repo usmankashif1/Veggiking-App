@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SIZES, icons, images } from '../constants';
 import { commonStyles } from '../styles/CommonStyles';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { Feather, Ionicons, MaterialCommunityIcons, Fontisto, Octicons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import Button from "../components/Button";
 import { StatusBar } from 'expo-status-bar';
 import GeneralService from '../services/general.service';
@@ -20,6 +20,8 @@ const FoodDetailsV1 = ({ route }) => {
   const [cartCounter, setCartCounter] = useState(0);
   const [screenLoading, setScreenLoading] = useState(false);
 
+  const navigation = useNavigation(); // Add useNavigation hook here
+
   const handleQuantityChange = (newQuantity) => {
     setQuantity(newQuantity);
   };
@@ -30,41 +32,30 @@ const FoodDetailsV1 = ({ route }) => {
       const response = await GeneralService.getProductCartById(id, userId);
       const { data } = response;
       const { response: res } = data;
-      console.log(res);
-      // console.log(`home-data=${cartData}`);
-      // const { response: cartNo } = cartData;
       setQuantity(res);
     } catch (err) {
       console.log(err);
       setQuantity(0);
     }
-  }
+  };
 
   const getCartCounter = async () => {
     try {
       let userId = await AsyncStorage.getItem("_id");
       const cartResponse = await GeneralService.cartCounterByUserId(userId);
       const { data: cartData } = cartResponse;
-      // console.log(`home-data=${cartData}`);
       const { response: cartNo } = cartData;
       setCartCounter(cartNo);
-
     } catch (err) {
       console.log(err);
       setCartCounter(0);
     }
-  }
+  };
 
   useFocusEffect(
     React.useCallback(() => {
-      // const cartCounter = async () => {
-      //   let cartCounter = await AsyncStorage.getItem("cart_counter");
-      //   console.log(`cart-counter=${cartCounter}`);
-      //   setCartCounter(cartCounter);
-      // };
       fetchData(prodId);
       getCartCounter();
-
     }, [])
   );
 
@@ -72,32 +63,28 @@ const FoodDetailsV1 = ({ route }) => {
     const decreaseQty = async () => {
       try {
         let userId = await AsyncStorage.getItem("_id");
-        // const response = await GeneralService.decreaseQty(userId, id);
 
         const timeout = 8000;
         const response = await Promise.race([
           GeneralService.decreaseQty(userId, id),
           new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), timeout))
         ]);
-        // console.log(response.data.response);
+
         if (response) {
           fetchData(prodId);
           getCartCounter();
-
         } else {
           throw new Error('No response from the server');
         }
       } catch (err) {
         console.log(err?.response?.data);
       }
-    }
+    };
 
     decreaseQty();
   };
 
   const cartAddition = (id) => {
-    console.log(`id=${id}`);
-
     const addCart = async () => {
       try {
         let userId = await AsyncStorage.getItem("_id");
@@ -111,15 +98,7 @@ const FoodDetailsV1 = ({ route }) => {
 
         if (response) {
           fetchData(prodId);
-          // if (response.status == 200) {
-          //   let cartCounter = await AsyncStorage.getItem("cart_counter");
-          //   cartCounter = parseInt(cartCounter, 10);
-          //   cartCounter++;
-          //   await AsyncStorage.setItem("cart_counter", cartCounter.toString());
-          // }
-
           getCartCounter();
-          // setCartCounter(cartCounter);
           setScreenLoading(false);
         } else {
           throw new Error('No response from the server');
@@ -127,73 +106,27 @@ const FoodDetailsV1 = ({ route }) => {
       } catch (err) {
         setScreenLoading(false);
       }
-    }
+    };
     addCart();
-  }
+  };
 
   const renderHeader = () => {
-    const navigation = useNavigation();
     return (
-      <View style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginTop: 20,
-      }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={commonStyles.header1Icon}
-          >
-            <Image
-              resizeMode='contain'
-              source={icons.arrowLeft}
-              style={{ height: 24, width: 24, tintColor: COLORS.black }}
-            />
-          </TouchableOpacity>
-          <Text style={{ marginLeft: 12, fontSize: 17, fontFamily: 'regular' }}>Product Details</Text>
-        </View>
-        {/* <View style={{
-          height: 45,
-          width: 45,
-          borderRadius: 22.5,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: COLORS.tertiaryBlack
-        }}>
-          <View>
-            <View style={{
-              position: 'absolute',
-              top: -16,
-              left: 12,
-              backgroundColor: COLORS.primary,
-              height: 25,
-              width: 25,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 12.5,
-              zIndex: 999
-            }}>
-              <Text style={{
-                fontSize: 16,
-                color: COLORS.white
-              }}>{cartCounter}</Text>
-            </View>
-            <Feather name="shopping-bag" size={24} color={COLORS.white} />
-          </View>
-        </View> */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIconContainer}>
+          <Image
+            resizeMode='contain'
+            source={icons.arrowLeft}
+            style={styles.headerIcon}
+          />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Product Detail</Text>
       </View>
     );
   };
 
   const renderFoodDetails = () => {
     const [isFavourite, setIsFavourite] = useState(false);
-    const [selectedSize, setSelectedSize] = useState(null);
-
-    const handleSizeSelection = (size) => {
-      setSelectedSize(size);
-    }
-
 
     return (
       <View style={{ marginVertical: 16 }}>
@@ -230,34 +163,11 @@ const FoodDetailsV1 = ({ route }) => {
           />
         </View>
         <View style={{ marginVertical: 16 }}>
-          <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={{ fontSize: 22, fontFamily: 'bold', textTransform: 'capitalize', marginVertical: 0 }}>
-              {name}
-            </Text>
-            <Text style={{ fontSize: 22, fontFamily: 'regular' }}>
-              Rs. {price}
-            </Text>
-          </View>
-
-          <Text style={{
-            fontSize: 22,
-            fontFamily: 'bold',
-            textTransform: 'capitalize',
-            marginVertical: 15
-          }}>Description</Text>
+          <Text style={styles.foodName}>{name}</Text>
+          <Text style={styles.foodPrice}>Rs. {price}</Text>
+          <Text style={styles.descriptionTitle}>Description</Text>
           <ScrollView showsVerticalScrollIndicator={false}>
-            <View style={{ width: '100%' }}>
-              <Text style={{
-                fontSize: 16,
-                fontFamily: 'regular',
-                textTransform: 'capitalize',
-                color: COLORS.black,
-                // fontSize: 14,
-                fontFamily: 'regular',
-                textAlign: 'justify',
-                hyphens: 'auto',
-              }}>{description}</Text>
-            </View>
+            <Text style={styles.foodDescription}>{description}</Text>
           </ScrollView>
         </View>
       </View>
@@ -267,11 +177,9 @@ const FoodDetailsV1 = ({ route }) => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
       <StatusBar hidden={true} />
+      {renderHeader()}
       <View style={{ flex: 1, paddingHorizontal: 16 }}>
-        {renderHeader()}
-        {/* <ScrollView showsVerticalScrollIndicator={false}> */}
         {renderFoodDetails()}
-        {/* </ScrollView> */}
         <View style={styles.addToCartContainer}>
           <View style={{
             backgroundColor: COLORS.tertiaryGray,
@@ -284,8 +192,7 @@ const FoodDetailsV1 = ({ route }) => {
               flexDirection: 'row',
               justifyContent: 'space-between',
               marginBottom: 16,
-            }}>
-            </View>
+            }} />
             {quantity > 0 ? (
               <View style={quantityStyle.container}>
                 <TouchableOpacity onPress={() => decreaseQuantity(prodId)} style={quantityStyle.button}>
@@ -312,24 +219,62 @@ const FoodDetailsV1 = ({ route }) => {
 };
 
 const styles = StyleSheet.create({
-  checkboxContainer: {
-    alignItems: "center",
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.primary,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+  },
+  headerIconContainer: {
+    width: 40,
+    height: 40,
     justifyContent: 'center',
-    height: 48,
-    width: 48,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: COLORS.gray,
-    backgroundColor: COLORS.gray,
-    marginRight: 12
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    elevation: 3,
   },
-  selectedCheckbox: {
-    backgroundColor: COLORS.primary
+  headerIcon: {
+    width: 24,
+    height: 24,
+    tintColor: COLORS.primary,
   },
-  checkboxText: {
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginLeft: 20,
     color: COLORS.white,
+  },
+  foodName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    textTransform: 'capitalize',
+  },
+  foodPrice: {
+    fontSize: 22,
+    fontWeight: 'regular',
+    color: COLORS.primary,
+  },
+  descriptionTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginVertical: 15,
+    textTransform: 'capitalize',
+  },
+  foodDescription: {
     fontSize: 16,
-    fontFamily: 'regular'
+    fontFamily: 'regular',
+    textAlign: 'justify',
+    color: COLORS.black,
+    lineHeight: 24,
   },
   addToCartContainer: {
     position: 'absolute',
@@ -344,10 +289,10 @@ const quantityStyle = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center', // Center the content horizontally
+    justifyContent: 'center',
     borderRadius: 5,
     borderColor: '#ccc',
-    overflow: 'hidden', // Clip any content that exceeds the container
+    overflow: 'hidden',
   },
   button: {
     paddingHorizontal: 25,
@@ -365,17 +310,6 @@ const quantityStyle = StyleSheet.create({
     fontSize: 16,
     paddingHorizontal: 30,
   },
-  // Apply borders only to the buttons and quantity text
-  buttonBorder: {
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: '#ccc',
-  },
-  quantityBorder: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-  },
 });
-
 
 export default FoodDetailsV1;

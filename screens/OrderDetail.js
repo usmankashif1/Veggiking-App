@@ -1,128 +1,133 @@
+import { View, StyleSheet, Text, FlatList, ActivityIndicator, TouchableOpacity, Image, StatusBar } from 'react-native';
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Text, Image, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { COLORS,icons} from '../constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useNavigation } from '@react-navigation/native';
-import { COLORS, icons } from '../constants';
+import Header from '../components/Header';
+import OrdDtlCard from '../components/OrdDtlCard';
 import GeneralService from '../services/general.service';
-import { commonStyles } from '../styles/CommonStyles';
+import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 
-const OrderDetail = ({ route }) => {
+const OrderDetail = ({ route, navigation }) => {
   const { orderId } = route.params;
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [detailData, setDetailData] = useState([]);
-  const navigation = useNavigation();
+  const [cartCounter, setCartCounter] = useState(0);
+
+  const getCartCounter = async () => {
+    try {
+      const userId = await AsyncStorage.getItem("_id");
+      const cartResponse = await GeneralService.cartCounterByUserId(userId);
+      const { data } = cartResponse;
+      const { response: cartNo } = data;
+      setCartCounter(cartNo);
+    } catch (err) {
+      console.log(err);
+      setCartCounter(0);
+    }
+  };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      getCartCounter();
+    }, [])
+  );
 
   useEffect(() => {
-    const fetchOrderDetails = async () => {
+    const getOrderDetail = async (id) => {
       try {
-        const ordersData = await GeneralService.listOrdersDetailByOrderId(orderId);
+        setIsLoading(true);
+        const ordersData = await GeneralService.listOrdersDetailByOrderId(id);
         const { data } = ordersData;
         const { response } = data;
-        setDetailData(response);
-      } catch (error) {
-        console.error(error);
-      } finally {
         setIsLoading(false);
+        setDetailData(response);
+      } catch (err) {
+        console.log(err);
+        setIsLoading(false);
+        setDetailData([]);
       }
     };
 
-    fetchOrderDetails();
+    getOrderDetail(orderId);
   }, [orderId]);
 
-  const renderHeader = () => (
-    <View style={styles.header}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={commonStyles.header1Icon}>
+  const renderItemSeparator = () => <View style={styles.itemSeparator} />;
+
+  const renderHeader = () => {
+    return (
+      <View style={styles.header}>
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIconContainer}>
         <Image
           resizeMode='contain'
           source={icons.arrowLeft}
           style={styles.headerIcon}
         />
       </TouchableOpacity>
-      <Text style={styles.headerTitle}>Orders Details</Text>
+      <Text style={styles.headerTitle}>Order Detail</Text>
     </View>
-  );
-
-  const renderLoadingIndicator = () => (
-    <View style={styles.loadingContainer}>
-      <ActivityIndicator size="large" color={COLORS.primary} />
-      <Text style={styles.loadingText}>Loading...</Text>
-    </View>
-  );
-
-  const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <Text style={styles.emptyText}>No items found for this order.</Text>
-    </View>
-  );
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Pending':
-        return COLORS.yellow;
-      case 'Shipped':
-        return COLORS.green;
-      case 'Delivered':
-        return COLORS.blue;
-      case 'Cancelled':
-        return COLORS.red;
-      default:
-        return COLORS.gray;
-    }
+    );
   };
 
-  const renderItem = ({ item }) => (
-    <View style={styles.cardContainer}>
-      <View style={styles.orderRow}>
-        {/* Image for the order */}
-        <View style={styles.imageWrapper}>
-          <Image 
-            source={{ uri: item.prod_image }}  // Updated to use item.prod_image
-            style={styles.orderImage}
-            onError={() => console.log('Error loading image')} // Log error if image fails to load
-            defaultSource={require('../assets/images/blnk.jpg')} // Add a placeholder image
-          />
-        </View>
-        <View style={styles.orderInfo}>
-          <View style={{ marginLeft: 12 }}>
-            <Text style={styles.orderIdText}>Order ID: {item.order_no}</Text>
-            <View style={styles.separator}></View>
-            <View style={styles.orderDetailsRow}>
-              <Text style={styles.orderAmountText}>Rs. {item.bill}</Text>
-              <Text style={styles.orderDateText}> | {item.created_at}</Text>
-            </View>
-          </View>
-        </View>
-        <Text style={[styles.statusText, { backgroundColor: getStatusColor(item.status) }]}>{item.status}</Text>
-      </View>
-    </View>
-  );
-  
   return (
-    <GestureHandlerRootView style={styles.area}>
-      <SafeAreaView style={styles.area}>
-        <View style={styles.container}>
+    <SafeAreaView style={styles.area}>
+      <StatusBar hidden={true} />
+      {renderHeader()}
+      <View style={styles.container}>
+        {isLoading ? (
+          <View style={styles.loaderContainer}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={styles.loadingText}>Loading Order Details...</Text>
+          </View>
+        ) : detailData.length > 0 ? (
           <FlatList
             data={detailData}
             keyExtractor={(item) => item.id.toString()}
-            renderItem={renderItem}
-            showsVerticalScrollIndicator={false}
-            ListHeaderComponent={renderHeader}
-            ListEmptyComponent={isLoading ? renderLoadingIndicator() : renderEmptyState()}
+            renderItem={({ item }) => (
+              <OrdDtlCard
+                image={item.prod_image}
+                amount={item.prod_price}
+                type={item.type}
+                price={item.price}
+                date={item.date}
+                name={item.prod_name}
+                quantity={item.quantity}
+                totalAmt={item.order_amount}
+                style={[styles.card, styles.enhancedCard]}
+              />
+            )}
+            ItemSeparatorComponent={renderItemSeparator}
+            contentContainerStyle={styles.flatlistContent}
           />
-        </View>
-      </SafeAreaView>
-    </GestureHandlerRootView>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>📭</Text>
+            <Text style={styles.emptyTitle}>No Orders Found</Text>
+            <Text style={styles.emptyText}>
+              It seems like there are no order details available at the moment. Please check back later or contact support if you believe this is an error.
+            </Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Text style={styles.retryButtonText}>Go Back</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   area: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.background,
   },
   container: {
     flex: 1,
+    padding: 16,
   },
   header: {
     flexDirection: 'row',
@@ -135,10 +140,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
+    borderBottomLeftRadius: 15,  // Added rounded corner for visual appeal
+    borderBottomRightRadius: 15, // Added rounded corner for visual appeal
+  },
+  headerIconContainer: {
+    width: 40,  // Increased size for better tap area
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,  // Background color for the icon
+    borderRadius: 20,  // Rounded corners for the icon container
+    elevation: 3,  // Shadow effect for the icon background
   },
   headerIcon: {
-    width: 24,
+    width: 24,  // Adjusted size for the icon
     height: 24,
+    tintColor: COLORS.primary,  // Icon color
   },
   headerTitle: {
     fontSize: 22,
@@ -147,90 +164,88 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     textTransform: 'capitalize',
   },
-  cardContainer: {
-    backgroundColor: COLORS.white,
-    borderRadius: 10,
-    marginHorizontal: 12,
-    marginVertical: 8,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 4,
-    borderWidth: 1,
-    borderColor: COLORS.gray6,
-  },
-  orderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  imageWrapper: {
-    width: 80, // Larger image area
-    height: 80,
-    borderRadius: 10, // Rounded corners
-    overflow: 'hidden',
-    backgroundColor: COLORS.gray6,
-  },
-  orderImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 10,
-  },
-  orderInfo: {
-    flex: 1,
-  },
-  orderIdText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: COLORS.black,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: COLORS.gray6,
-    marginVertical: 8,
-  },
-  orderDetailsRow: {
-    flexDirection: 'row',
-  },
-  orderAmountText: {
-    fontSize: 16,
-    color: COLORS.primary,
-    fontWeight: 'bold',
-  },
-  orderDateText: {
-    fontSize: 16,
-    color: COLORS.gray5,
-  },
-  statusText: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 4,
-    color: COLORS.white,
-    fontWeight: 'bold',
-    overflow: 'hidden',
-  },
-  loadingContainer: {
-    flex: 1,
+  loaderContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    flex: 1,
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: COLORS.gray,
+    color: COLORS.primary,
+  },
+  itemSeparator: {
+    height: 1,
+    backgroundColor: COLORS.lightGray,
+    marginVertical: 8,
+  },
+  flatlistContent: {
+    paddingBottom: 16,
+  },
+  card: {
+    padding: 16,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  enhancedCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
+    backgroundColor: COLORS.white,
+    marginBottom: 10,
   },
   emptyContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    flex: 1,
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.background,
+  },
+  emptyIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+    color: COLORS.primary,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.primary,
+    marginBottom: 8,
+    textAlign: 'center',
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: 16,
     color: COLORS.gray,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: COLORS.primary,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  retryButtonText: {
+    fontSize: 16,
+    color: COLORS.white,
+    fontWeight: 'bold',
   },
 });
 
