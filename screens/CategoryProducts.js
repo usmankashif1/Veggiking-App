@@ -14,8 +14,6 @@ import { StatusBar } from 'expo-status-bar'
 import GeneralService from '../services/general.service'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { cartStyles } from '../styles/CartStyles'
-import FooterNavigation from '../navigations/FooterNavigation'
-import { useCart } from '../context/CartContext'
 
 
 const CategoryProducts = ({ route }) => {
@@ -27,15 +25,8 @@ const CategoryProducts = ({ route }) => {
   const [selectedStars, setSelectedStars] = useState(Array(5).fill(false));
   // const [products, setProducts] = useState([]);
   const [products, setProducts] = useState(Array.from({ length: 6 }, (_, index) => ({ id: index, name: 'Loading...', image: '' })));
-  const { addItemToCart, decreaseQty, removeItemFromCart, cartItems } = useCart();
 
   const navigation = useNavigation();
-
-  const getQuantityInCart = (productId) => {
-    // console.log(`id=${productId}`);
-    const item = cartItems.find(i => i.id === productId);
-    return item ? item.quantity : 0;
-  };
 
   const getCartCounter = async () => {
     try {
@@ -65,10 +56,7 @@ const CategoryProducts = ({ route }) => {
   );
 
 
-  const addCart = async (prodId, product) => {
-    let allowdQty = product.max_qty;
-    let addedQty = getQuantityInCart(prodId);
-
+  const addCart = async (prodId) => {
     try {
       // setScreenLoading(true);
       const updatedProducts = products.map(product => {
@@ -80,15 +68,31 @@ const CategoryProducts = ({ route }) => {
         }
         return product;
       });
+      setProducts(updatedProducts);
 
-      if (parseInt(addedQty) < parseInt(allowdQty)) {
-        setProducts(updatedProducts);
-        addItemToCart(product);
+      const timeout = 2000;
+      let userId = await AsyncStorage.getItem("_id");
+
+      const response = await Promise.race([
+        GeneralService.addCart(userId, prodId),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), timeout))
+      ]);
+
+      if (response) {
+        // showToast('Added to cart');
+
+        getCartCounter();
+        // fetchProducts();
+        // setScreenLoading(false);
+      } else {
+        throw new Error('No response from the server');
       }
-    } catch (err) { }
+    } catch (err) {
+      // setScreenLoading(false);
+    }
   }
 
-  const decreaseQuantity = (prodId, product) => {
+  const decreaseQuantity = (prodId) => {
     const decreaseQnty = async () => {
       try {
         // setScreenLoading(true);
@@ -103,25 +107,24 @@ const CategoryProducts = ({ route }) => {
           return product;
         });
         setProducts(updatedProducts);
-        decreaseQty(product);
 
-        // const timeout = 2000;
-        // let userId = await AsyncStorage.getItem("_id");
-        // const response = await Promise.race([
-        //   GeneralService.decreaseQty(userId, prodId),
-        //   new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), timeout))
-        // ]);
+        const timeout = 2000;
+        let userId = await AsyncStorage.getItem("_id");
+        const response = await Promise.race([
+          GeneralService.decreaseQty(userId, prodId),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), timeout))
+        ]);
 
-        // if (response) {
+        if (response) {
 
-        //   console.log(response);
-        //   // showToast('Quantity decreased');
+          console.log(response);
+          // showToast('Quantity decreased');
 
-        //   getCartCounter();
-        //   // setScreenLoading(false);
-        // } else {
-        //   throw new Error('No response from the server');
-        // }
+          getCartCounter();
+          // setScreenLoading(false);
+        } else {
+          throw new Error('No response from the server');
+        }
       } catch (err) {
         console.log(err?.response?.data);
       }
@@ -189,92 +192,54 @@ const CategoryProducts = ({ route }) => {
   };
 
   const renderHeader = () => {
-    const navigation = useNavigation()
     return (
-      <View style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginTop: 20,
-      }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={commonStyles.header1Icon}
-          >
-            <Image
-              resizeMode='contain'
-              source={icons.arrowLeft}
-              style={{ height: 24, width: 24, tintColor: COLORS.black }}
-            />
-          </TouchableOpacity>
-          <Text style={{ marginLeft: 12, fontSize: 17, fontFamily: 'regular' }}>{catName.toUpperCase()}</Text>
+      <View style={styles.header}>
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerIconContainer}>
+        <Image
+          resizeMode='contain'
+          source={icons.arrowLeft}
+          style={styles.headerIcon}
+        />
+      </TouchableOpacity>
+      <Text style={styles.headerTitle}>{catName}</Text>
+    </View>
+    );
+  };
+  // <Text style={{ marginLeft: 12, fontSize: 17, fontFamily: 'regular' }}>{catName.toUpperCase()}</Text>
+ 
+
+  const renderRestaurantDetails = () => {
+    const navigation = useNavigation();
+    return (
+      <View style={{ marginTop: 16 }}>
+        <View style={{ marginVertical: 16 }}>
+          <FlatList
+            horizontal={true}
+            data={recentKeywords}
+            keyExtractor={item => item.id}
+            renderItem=
+            {({ item, index }) => (
+              <TouchableOpacity
+                onPress={() => navigation.navigate("FoodByKeywords")}
+                style={{
+                  height: 46,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 2,
+                  borderColor: COLORS.gray6,
+                  borderRadius: 30,
+                  paddingHorizontal: 10,
+                  marginHorizontal: 8
+                }}
+                key={index}>
+                <Text style={{ color: COLORS.tertiaryBlack, fontSize: 16 }}>{item.name}</Text>
+              </TouchableOpacity>
+            )}
+          />
         </View>
-        {/* <View style={{
-          height: 45,
-          width: 45,
-          borderRadius: 22.5,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: COLORS.tertiaryBlack
-        }}>
-          <View>
-            <View style={{
-              position: 'absolute',
-              top: -16,
-              left: 12,
-              backgroundColor: COLORS.primary,
-              height: 25,
-              width: 25,
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: 12.5,
-              zIndex: 999
-            }}>
-              <Text style={{
-                fontSize: 16,
-                color: COLORS.white
-              }}>{cartCounter}</Text>
-            </View>
-            <Feather name="shopping-bag" size={24} color={COLORS.white} />
-          </View>
-        </View> */}
       </View>
     )
   }
-
-  // const renderRestaurantDetails = () => {
-  //   const navigation = useNavigation();
-  //   return (
-  //     <View style={{ marginTop: 16 }}>
-  //       <View style={{ marginVertical: 16 }}>
-  //         <FlatList
-  //           horizontal={true}
-  //           data={recentKeywords}
-  //           keyExtractor={item => item.id}
-  //           renderItem=
-  //           {({ item, index }) => (
-  //             <TouchableOpacity
-  //               onPress={() => navigation.navigate("FoodByKeywords")}
-  //               style={{
-  //                 height: 46,
-  //                 alignItems: 'center',
-  //                 justifyContent: 'center',
-  //                 borderWidth: 2,
-  //                 borderColor: COLORS.gray6,
-  //                 borderRadius: 30,
-  //                 paddingHorizontal: 10,
-  //                 marginHorizontal: 8
-  //               }}
-  //               key={index}>
-  //               <Text style={{ color: COLORS.tertiaryBlack, fontSize: 16 }}>{item.name}</Text>
-  //             </TouchableOpacity>
-  //           )}
-  //         />
-  //       </View>
-  //     </View>
-  //   )
-  // }
 
   const renderFoodsByCategories = () => {
     const navigation = useNavigation()
@@ -289,19 +254,18 @@ const CategoryProducts = ({ route }) => {
         {
           products.map((item, index) => (
             <TouchableOpacity
-              onPress={() => navigation.navigate("FoodDetails", 
-                { id: item.id, description: item.description, name: item.name, image: item.image, price: item.price, minQty: 1, type: "kg", stock: item.stock_available, max_qty: item.max_qty })}
+              onPress={() => navigation.navigate("FoodDetails", { id: item.id, description: item.description, name: item.name, image: item.image, price: item.price, minQty: 1, type: "kg" })}
               key={index}
               style={{
                 flexDirection: 'column',
                 paddingHorizontal: 2,
                 paddingVertical: 4,
                 height: "auto",
-                width: 160,
+                width: 170,
                 borderWidth: 1,
                 borderColor: COLORS.gray6,
                 borderRadius: 15,
-                marginRight: "auto",
+                marginRight: 6,
                 marginBottom: 16
               }}>
               <Image
@@ -311,25 +275,22 @@ const CategoryProducts = ({ route }) => {
               />
               <Text style={{ fontSize: 14, fontFamily: "bold", marginVertical: 4 }}>{item.name}</Text>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                {item.stock_available > 0 && (<Text style={{ fontSize: 15, fontFamily: 'bold' }}>Rs. {item.price}</Text>)}
-                {item.stock_available == 0 && (<Text style={{ fontSize: 15, fontFamily: 'bold', color: 'red' }}>Out of Stock</Text>)}
-                {item.stock_available > 0 && (
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    {getQuantityInCart(item.id) > 0 && (
-                      <>
-                        <TouchableOpacity
-                          onPress={() => decreaseQuantity(item.id, item)}
-                          style={[cartStyles.roundedBtn, { backgroundColor: '#f44c00', marginRight: 4 }]}>
-                          <Text style={cartStyles.body2}>-</Text>
-                        </TouchableOpacity>
-                        <Text style={{ fontSize: 16, fontFamily: 'regular', marginHorizontal: 4 }}>{getQuantityInCart(item.id)}</Text>
-                      </>
-                    )}
-                    <TouchableOpacity onPress={() => addCart(item.id, item)} style={[cartStyles.roundedBtn, { backgroundColor: '#f44c00' }]}>
-                      <Text style={cartStyles.body2}>+</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
+                <Text style={{ fontSize: 15, fontFamily: 'bold' }}>Rs. {item.price}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  {item.quantity_added >= 1 && (
+                    <>
+                      <TouchableOpacity
+                        onPress={() => decreaseQuantity(item.id)}
+                        style={[cartStyles.roundedBtn, { backgroundColor: '#f44c00', marginRight: 4 }]}>
+                        <Text style={cartStyles.body2}>-</Text>
+                      </TouchableOpacity>
+                      <Text style={{ fontSize: 16, fontFamily: 'regular', marginHorizontal: 4 }}>{item.quantity_added}</Text>
+                    </>
+                  )}
+                  <TouchableOpacity onPress={() => addCart(item.id)} style={[cartStyles.roundedBtn, { backgroundColor: '#f44c00' }]}>
+                    <Text style={cartStyles.body2}>+</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
             </TouchableOpacity>
@@ -589,8 +550,8 @@ const CategoryProducts = ({ route }) => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.white }}>
       <StatusBar hidden={true} />
-      <View style={{ flex: 1, marginHorizontal: 16 }}>
         {renderHeader()}
+      <View style={{ flex: 1, marginHorizontal: 16, marginTop: 10 }}>
         {
           screenLoading ?
             <ActivityIndicator size="large" color="blue" /> : null
@@ -601,12 +562,46 @@ const CategoryProducts = ({ route }) => {
         </ScrollView>
       </View>
       {renderSearchModal()}
-      <FooterNavigation />
     </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.primary,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+    borderBottomLeftRadius: 15,  // Added rounded corner for visual appeal
+    borderBottomRightRadius: 15, // Added rounded corner for visual appeal
+  },
+  headerIconContainer: {
+    width: 40,  // Increased size for better tap area
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,  // Background color for the icon
+    borderRadius: 20,  // Rounded corners for the icon container
+    elevation: 3,  // Shadow effect for the icon background
+  },
+  headerIcon: {
+    width: 24,  // Adjusted size for the icon
+    height: 24,
+    tintColor: COLORS.primary,  // Icon color
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginLeft: 20,
+    color: COLORS.white,
+    textTransform: 'capitalize',
+  },
   checkboxContainer: {
     paddingHorizontal: 8,
     paddingVertical: 8,
