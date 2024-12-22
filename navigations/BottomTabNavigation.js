@@ -32,7 +32,7 @@ const screenOptions = {
 };
 
 const BottomTabNavigation = () => {
-    const { cartCounter } = useCart();
+    const { cartCounter, cartItems } = useCart();
     const [userId, setUserId] = useState(null);
 
     const checkAuthentication = async () => {
@@ -79,9 +79,9 @@ const BottomTabNavigation = () => {
                     tabBarIcon: ({ focused }) => (
                         <View style={[styles.iconWrapper, focused && styles.activeIcon]}>
                             <Ionicons name={focused ? 'cart-sharp' : 'cart-outline'} size={28} color={focused ? '#f44c00' : '#ddd'} style={styles.icon} />
-                            {cartCounter > 0 && (
+                            {cartItems.length > 0 && (
                                 <View style={styles.cartBadge}>
-                                    <Text style={styles.cartBadgeText}>{cartCounter}</Text>
+                                    <Text style={styles.cartBadgeText}>{cartItems.length}</Text>
                                 </View>
                             )}
                         </View>

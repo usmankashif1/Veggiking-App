@@ -9,11 +9,15 @@ import Button from "../components/Button";
 import { StatusBar } from 'expo-status-bar';
 import GeneralService from '../services/general.service';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCart } from '../context/CartContext';
 
 const ingridents = [icons.salt, icons.chickenLeg, icons.onion, icons.chili];
 
 const FoodDetailsV1 = ({ route }) => {
-  const { id: prodId, name, description, image, price, minQty, quantity_added, type } = route.params;
+  const { updateCartCounter, updateUserAddress, userInfo, decreaseQty, cartItems, addItemToCart } = useCart();
+
+  const { id: prodId, name, description, image, price, minQty, quantity_added, stock: stock_available, max_qty, type } = route.params;
+  const product = { id: prodId, name: name, price: price, description: description, stock_available, quantity_added: quantity_added, image: image, max_qty: max_qty };
 
   const [data, setData] = useState({});
   const [quantity, setQuantity] = useState(0);
@@ -25,6 +29,13 @@ const FoodDetailsV1 = ({ route }) => {
   const handleQuantityChange = (newQuantity) => {
     setQuantity(newQuantity);
   };
+
+  const getQuantityInCart = (productId) => {
+    const item = cartItems.find(i => i.id === productId);
+    return item ? item.quantity : 0;
+  };
+
+
 
   const fetchData = async (id) => {
     try {
@@ -38,6 +49,60 @@ const FoodDetailsV1 = ({ route }) => {
       setQuantity(0);
     }
   };
+
+  const decreaseQuantity = (id, product) => {
+    const decreaseQnty = async () => {
+      try {
+        // let userId = userInfo.id;
+        // const response = await GeneralService.decreaseQty(userId, id);
+
+        decreaseQty(product);
+        // decreaseQty(product);
+        // const timeout = 8000;
+        // const response = await Promise.race([
+        //   GeneralService.decreaseQty(userId, id),
+        //   new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), timeout))
+        // ]);
+        // console.log(response.data.response);
+        // if (response) {
+        //   fetchData(prodId);
+        //   getCartCounter();
+
+        // } else {
+        //   throw new Error('No response from the server');
+        // }
+      } catch (err) {
+        console.log(err?.response?.data);
+      }
+    }
+    decreaseQnty();
+
+    // decreaseQty();
+  };
+
+  const cartAddition = (id, product) => {
+    let allowdQty = product.max_qty;
+    let allowedStock = product.stock_available;
+    let addedQty = getQuantityInCart(id);
+
+// console.log(`${allowdQty}, ${allowedStock}, ${addedQty}`);
+
+    const addCart = async () => {
+
+      try {
+        addItemToCart(product);
+
+      } catch (err) {
+      }
+    }
+    // alert(product);
+    // alert(`added=${addedQty}, allowed=${allowdQty}`);
+    if (parseInt(addedQty) < parseInt(allowedStock)) {
+      if (parseInt(addedQty) < parseInt(allowdQty)) {
+        addCart();
+      }
+    }
+  }
 
   const getCartCounter = async () => {
     try {
@@ -59,56 +124,7 @@ const FoodDetailsV1 = ({ route }) => {
     }, [])
   );
 
-  const decreaseQuantity = (id) => {
-    const decreaseQty = async () => {
-      try {
-        let userId = await AsyncStorage.getItem("_id");
-
-        const timeout = 8000;
-        const response = await Promise.race([
-          GeneralService.decreaseQty(userId, id),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), timeout))
-        ]);
-
-        if (response) {
-          fetchData(prodId);
-          getCartCounter();
-        } else {
-          throw new Error('No response from the server');
-        }
-      } catch (err) {
-        console.log(err?.response?.data);
-      }
-    };
-
-    decreaseQty();
-  };
-
-  const cartAddition = (id) => {
-    const addCart = async () => {
-      try {
-        let userId = await AsyncStorage.getItem("_id");
-        setScreenLoading(true);
-
-        const timeout = 8000;
-        const response = await Promise.race([
-          GeneralService.addCart(userId, id),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), timeout))
-        ]);
-
-        if (response) {
-          fetchData(prodId);
-          getCartCounter();
-          setScreenLoading(false);
-        } else {
-          throw new Error('No response from the server');
-        }
-      } catch (err) {
-        setScreenLoading(false);
-      }
-    };
-    addCart();
-  };
+  
 
   const renderHeader = () => {
     return (
@@ -193,24 +209,30 @@ const FoodDetailsV1 = ({ route }) => {
               justifyContent: 'space-between',
               marginBottom: 16,
             }} />
-            {quantity > 0 ? (
-              <View style={quantityStyle.container}>
-                <TouchableOpacity onPress={() => decreaseQuantity(prodId)} style={quantityStyle.button}>
-                  <Text style={quantityStyle.buttonText}>-</Text>
-                </TouchableOpacity>
-                <Text style={quantityStyle.quantity}>{quantity}</Text>
-                <TouchableOpacity onPress={() => cartAddition(prodId)} style={quantityStyle.button}>
-                  <Text style={quantityStyle.buttonText}>+</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <Button
-                filled
-                onPress={() => cartAddition(prodId)}
-                isEnable={true}
-                title={`ADD TO CART`}
-              />
-            )}
+            {
+              stock_available > 0 ? (
+                getQuantityInCart(prodId) > 0 ? (
+                  <View style={quantityStyle.container}>
+                    <TouchableOpacity onPress={() => decreaseQuantity(prodId, product)} style={quantityStyle.button}>
+                      <Text style={quantityStyle.buttonText}>-</Text>
+                    </TouchableOpacity>
+                    <Text style={quantityStyle.quantity}>{getQuantityInCart(prodId)}</Text>
+                    <TouchableOpacity onPress={() => cartAddition(prodId, product)} style={quantityStyle.button}>
+                      <Text style={quantityStyle.buttonText}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <Button
+                    filled
+                    onPress={() => cartAddition(prodId, product)}
+                    isEnable={true}
+                    title={`ADD TO CART`}
+                  />
+                )
+              ) : (
+                <Text style={{ fontSize: 15, fontFamily: 'bold', color: 'red' }}>Out of Stock</Text>
+              )
+            }
           </View>
         </View>
       </View>

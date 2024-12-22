@@ -7,8 +7,11 @@ import { StatusBar } from 'expo-status-bar'
 import { useCart } from '../context/CartContext';
 
 const Thankyou = ({ navigation, route }) => {
-    const { updateCartCounter } = useCart();
-    updateCartCounter(0);
+    const { clearCart } = useCart();
+
+    useEffect(() => {
+        clearCart();
+    }, [clearCart]);
     
     const { orderNo } = route.params;
     return (

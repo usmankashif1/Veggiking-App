@@ -16,7 +16,7 @@ export const cartStyles = StyleSheet.create({
         paddingHorizontal: 22,
         paddingVertical: 30,
         zIndex: 9999,
-        // marginBottom: "5%"
+        marginBottom: "5%"
     },
     body3:{
         fontSize: 14, 

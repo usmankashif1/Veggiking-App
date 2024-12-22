@@ -12,8 +12,8 @@ import { StatusBar } from 'expo-status-bar'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import GeneralService from '../services/general.service'
 import { useFocusEffect } from '@react-navigation/native'
-import { FontAwesome } from '@expo/vector-icons';
 import { useCart } from '../context/CartContext';
+import { FontAwesome } from '@expo/vector-icons';
 
 const Cart = ({ navigation }) => {
   const basket = require("../assets/images/basket.png");
@@ -21,13 +21,39 @@ const Cart = ({ navigation }) => {
   const [quantity, setQuantity] = useState(1);
   const [cart, setCart] = useState([]);
   const [isLoading, setIsLoading] = useState(false)
-  const [totalPrice, setTotalPrice] = useState(0)
+  const [totPrice, setTotPrice] = useState(0)
+  const [userId, setUserId] = useState("")
+  const [address, setAddress] = useState("")
   const [itemNo, setItemNo] = useState(0)
-  const [cartCounter, setCartCounter] = useState(0); ``
+  const [cartCounter, setCartCounter] = useState(0);
   const [inputText, setInputText] = useState('');
   const [inputError, setInputError] = useState('');
   const [deliveryCharges, setDeliveryCharges] = useState(0);
-  const { updateCartCounter, updateUserAddress, userAddress } = useCart();
+  const [minCharges, setMinCharges] = useState(0);
+  const { totalPrice, increaseQty, removeItemFromCart, decreaseQty, cartItems, updateCartCounter, updateUserAddress, userAddress } = useCart();
+  // var userId;
+
+  useEffect(() => {
+    getData = async () => {
+      const userId = await AsyncStorage.getItem("_id");
+      if (userId) {
+        setUserId(userId);
+      }
+      const savedAddress = await AsyncStorage.getItem("user_address");
+      if (savedAddress) {
+        setAddress(savedAddress);
+      }
+    }
+
+    getData();
+  }, []);
+
+  useEffect(() => {
+    if (Array.isArray(cartItems)) {
+      fetchData();
+      fetchDeliveryCharges();
+    }
+  }, [cartItems]);
 
   const getCartCounter = async () => {
     try {
@@ -84,39 +110,53 @@ const Cart = ({ navigation }) => {
   //   }
   // }
 
+  // const fetchData = async () => {
+  //   try {
+  //     console.log("asjdhskdh");
+  //     let userId = await AsyncStorage.getItem("_id");
+  //     // let userAddress = await AsyncStorage.getItem("my_address");
+  //     // console.log(`user-address=${userAddress}`);
+  //     if (typeof userAddress !== "string") {
+  //       userAddress = JSON.stringify(userAddress);
+  //     }
+  //     // console.log(userAddress);
+  //     setInputText(userAddress);
+  //     const response = await GeneralService.listCartByUserId(userId);
+  //     const { data } = response;
+  //     const { response: res } = data;
+  //     const totalPrice = res.reduce((accumulator, currentValue) => {
+  //       return accumulator + (currentValue.quantity * currentValue.product_price);
+  //     }, 0);
+
+  //     const numberOfItems = res.reduce((count, obj) => {
+  //       return count + 1;
+  //     }, 0);
+
+  //     setItemNo(numberOfItems);
+  //     setTotPrice(totalPrice);
+  //     setCart(res);
+  //     getCartCounter();
+  //   } catch (err) {
+  //     // console.log("Error");
+  //     Alert.alert("Error", err);
+  //     // console.log(`error-response=${err}`);
+  //     setCart([]);
+  //   }
+  // }
+
   const fetchData = async () => {
     try {
-      console.log("asjdhskdh");
-      let userId = await AsyncStorage.getItem("_id");
-      // let userAddress = await AsyncStorage.getItem("my_address");
-      // console.log(`user-address=${userAddress}`);
-      if (typeof userAddress !== "string") {
-        userAddress = JSON.stringify(userAddress);
-      }
-      // console.log(userAddress);
-      setInputText(userAddress);
-      const response = await GeneralService.listCartByUserId(userId);
-      const { data } = response;
-      const { response: res } = data;
-      const totalPrice = res.reduce((accumulator, currentValue) => {
-        return accumulator + (currentValue.quantity * currentValue.product_price);
+      const totalPrice = cartItems.reduce((accumulator, currentValue) => {
+        return accumulator + (currentValue.quantity * currentValue.price);
       }, 0);
 
-      const numberOfItems = res.reduce((count, obj) => {
-        return count + 1;
-      }, 0);
+      const numberOfItems = cartItems.length;
 
       setItemNo(numberOfItems);
-      setTotalPrice(totalPrice);
-      setCart(res);
-      getCartCounter();
     } catch (err) {
-      // console.log("Error");
-      Alert.alert("Error", err);
-      // console.log(`error-response=${err}`);
-      setCart([]);
+      console.log("Error");
     }
-  }
+  };
 
 
   // const fetchDataOld2 = async () => {
@@ -157,10 +197,23 @@ const Cart = ({ navigation }) => {
     }
   }
 
+  const fetchMinCharges = async () => {
+    try {
+      const response = await GeneralService.getMinCharges();
+      const { data } = response;
+      const { response: res } = data;
+      // console.log(res);
+      setMinCharges(res.price);
+    } catch (err) {
+      setMinCharges(0);
+    }
+  }
+
   useFocusEffect(
     React.useCallback(() => {
       fetchData();
       fetchDeliveryCharges();
+      fetchMinCharges();
     }, [])
   );
 
@@ -245,25 +298,40 @@ const Cart = ({ navigation }) => {
   };
 
   const handleInputChange = (text) => {
-    setInputText(text);
+    setAddress(text);
   };
   const placeOrder = () => {
+    // console.log("btn clicked");
     const orderPlace = async () => {
-      if (inputText) {
-        setInputError("");
-        navigation.navigate("PaymentMethod", { total: totalPrice, delivery: deliveryCharges, items: itemNo, address: inputText });
-      } else {
-        setInputError("Please enter address");
-      }
-      console.log(inputText);
-    }
-    if (parseInt(totalPrice) >= 1000) {
-      orderPlace();
-    } else {
-      Alert.alert("Price Alert", "Minimum order is Rs 1000");
-    }
-  }
+      let userId = await AsyncStorage.getItem("_id");
+      if (!userId) {
+        console.log("!userId");
+        navigation.navigate("Login", { page: "Cart" });
+      } else if (parseInt(totalPrice) >= parseInt(minCharges)) {
+        console.log(">=1000");
+        if (address) {
+          setInputError("");
+        } else {
+          setInputError("Please enter address");
+        }
 
+        navigation.navigate("PaymentMethod", { cart: cartItems, total: totalPrice, delivery: deliveryCharges, items: itemNo, address: address });
+      } else {
+        Alert.alert("Price Alert", "Minimum order is Rs 1000");
+
+        if (address) {
+          setInputError("");
+        } else {
+          setInputError("Please enter address");
+        }
+      }
+
+      // console.log(inputText);
+    }
+
+    orderPlace();
+
+  }
 
   const renderHeader = () => {
     return (
@@ -275,21 +343,20 @@ const Cart = ({ navigation }) => {
           style={styles.headerIcon}
         />
       </TouchableOpacity>
-      <Text style={styles.headerTitle}>Cart</Text>
+      <Text style={styles.headerTitle}>Cart</Text>      
     </View>
     );
   };
-  
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'lightGrey' }}>
       <StatusBar hidden={true} />
       {renderHeader()}
+
       <View style={cartStyles.header}>
 
-
-
         {
-          cartCounter == 0 ? (
+          cartItems.length == 0 ? (
             <View style={[styles.centeredContainer, { backgroundColor: 'lightGrey' }]}>
               <Image source={basket} style={{ width: "40%", height: "20%", marginHorizontal: 10 }} />
               <Text style={{
@@ -301,7 +368,7 @@ const Cart = ({ navigation }) => {
             </View>
           ) : (
             <FlatList
-              data={cart}
+              data={cartItems}
               showsVerticalScrollIndicator={false}
               keyExtractor={item => item.id.toString()}
               renderItem={({ item, index }) => {
@@ -311,14 +378,15 @@ const Cart = ({ navigation }) => {
                       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                         {/* Delete Button */}
                         <TouchableOpacity
-                          onPress={() => deleteCart(item.prod_id)}
-                          style={styles.deleteButton}
-                        >
-                          <FontAwesome name="remove" size={24} color="red" style={{ marginRight: 10 }} />
-                        </TouchableOpacity>
+    onPress={() => removeItemFromCart(item)}
+    style={styles.deleteButton}
+>
+    <FontAwesome name="trash" size={24} color="white" />
+</TouchableOpacity>
+
                         <View style={{ width: 80, marginRight: 10 }}>
                           <Image
-                            source={{ uri: `https://api.veggieking.pk/public/upload/${item.product_image}` }}
+                            source={{ uri: `https://api.veggieking.pk/public/upload/${item.image}` }}
                             resizeMode='contain'
                             style={{
                               height: 80,
@@ -335,19 +403,19 @@ const Cart = ({ navigation }) => {
                               fontFamily: 'regular',
                               textTransform: 'capitalize',
                               marginBottom: 6,
-                            }}>{item.product_name}</Text>
+                            }}>{item.name}</Text>
                           <Text style={{
                             fontSize: 20,
                             color: '#f44c00',
                             fontFamily: 'bold',
                             marginBottom: 6,
-                          }}>Rs. {item.product_price * item.quantity}</Text>
+                          }}>Rs. {item.price * item.quantity}</Text>
                         </View>
                         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
 
                           {/* Minus Button */}
                           <TouchableOpacity
-                            onPress={() => decreaseQuantity(item.prod_id)}
+                            onPress={() => decreaseQty(item)}
                             style={styles.roundedBtn}
                           >
                             <Text style={cartStyles.body2}>-</Text>
@@ -361,7 +429,11 @@ const Cart = ({ navigation }) => {
                           }}>{item.quantity}</Text>
                           {/* Plus Button */}
                           <TouchableOpacity
-                            onPress={() => increaseQuantity(item.prod_id)}
+                            onPress={() => {
+                              if (parseInt(item.quantity) < parseInt(item.max_qty)) {
+                                increaseQty(item)
+                              }
+                            }}
                             style={styles.roundedBtn}
                           >
                             <Text style={cartStyles.body2}>+</Text>
@@ -380,21 +452,27 @@ const Cart = ({ navigation }) => {
 
       </View>
       {
-        cart.length > 0 && (
+        cartItems.length > 0 && (
           <Animatable.View animation="fadeInUpBig" style={cartStyles.footer}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-              <Text style={cartStyles.body3}>Delivery Address</Text>
-            </View>
-            <Input
-              name="address"
-              id="address"
-              onChangeText={handleInputChange}
-              value={inputText}
-              placeholder="Delivery Address"
-              placeholderTextColor={COLORS.gray4}
-              keyboardType="text"
-            />
-            {inputError && <Text style={styles.error}>{inputError}</Text>}
+            {
+              userId && (
+                <>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <Text style={cartStyles.body3}>Delivery Address</Text>
+                  </View>
+                  <Input
+                    name="address"
+                    id="address"
+                    onChangeText={handleInputChange}
+                    value={address}
+                    placeholder="Delivery Address"
+                    placeholderTextColor={COLORS.gray4}
+                    keyboardType="text"
+                  />
+                  {inputError && <Text style={styles.error}>{inputError}</Text>}
+                </>
+              )
+            }
 
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: 5 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -503,7 +581,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-
+  deleteButton: {
+    backgroundColor: '#B32624', // Use a consistent color scheme
+    borderRadius: 10,          // Rounded button
+    padding: 8,               // Add some padding for better touch target
+    justifyContent: 'center',  // Center the icon
+    alignItems: 'center',
+    shadowColor: '#000',       // Add shadow for better UI depth
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 5,
+    elevation: 5,              // Shadow for Android
+},
 });
 
 export default Cart

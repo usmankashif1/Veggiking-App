@@ -137,6 +137,7 @@ export const CartProvider = ({ children }) => {
             userAddress,
             updateUserAddress,
             addItemToCart,
+            clearCart,
             // userInfo,
             // updateUserInfo
         }}>

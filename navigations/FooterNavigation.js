@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons, SimpleLineIcons } from '@expo/vector-icons';
 import { COLORS } from '../constants';
@@ -15,7 +15,7 @@ const FooterNavigation = () => {
 
     useEffect(() => {
         const checkAuthentication = async () => {
-            const id = await AsyncStorage.getItem("_id");
+            const id = await AsyncStorage.getItem('_id');
             setUserId(id);
         };
         checkAuthentication();
@@ -27,7 +27,7 @@ const FooterNavigation = () => {
     };
 
     return (
-        <View style={styles.container}>
+        <View style={styles.tabBarStyle}>
             <TouchableOpacity
                 style={[styles.iconWrapper, activeTab === 'Home' && styles.activeIcon]}
                 onPress={() => handleNavigation('Home')}
@@ -42,27 +42,29 @@ const FooterNavigation = () => {
 
             {userId && (
                 <TouchableOpacity
-                    style={[styles.tab, activeTab === 'MyOrders' && styles.activeTab]}
+                    style={[styles.iconWrapper, activeTab === 'MyOrders' && styles.activeIcon]}
                     onPress={() => handleNavigation('MyOrders')}
                 >
                     <Ionicons
                         name="gift-outline"
-                        size={24}
-                        color={activeTab === 'MyOrders' ? COLORS.white : COLORS.lightGray}
-                    />
+                        size={28}
+                        color={activeTab === 'MyOrders' ? '#f44c00' : '#ddd'}
+                        style={styles.icon}
+                   />
                 </TouchableOpacity>
             )}
 
             <TouchableOpacity
-                style={[styles.tab, activeTab === 'Cart' && styles.activeTab]}
+                style={[styles.iconWrapper, activeTab === 'Cart' && styles.activeIcon]}
                 onPress={() => handleNavigation('Cart')}
             >
                 <View style={styles.cartIconContainer}>
                     <Ionicons
-                        name={activeTab === 'Cart' ? "cart-sharp" : "cart-outline"}
-                        size={24}
-                        color={activeTab === 'Cart' ? COLORS.white : COLORS.lightGray}
-                    />
+                        name={activeTab === 'Cart' ? 'cart-sharp' : 'cart-outline'}
+                        size={28}
+                        color={activeTab === 'Cart' ? '#f44c00' : '#ddd'}
+                        style={styles.icon}
+                  />
                     {cartCounter > 0 && (
                         <View style={styles.cartBadge}>
                             <Text style={styles.cartBadgeText}>{cartCounter}</Text>
@@ -72,26 +74,46 @@ const FooterNavigation = () => {
             </TouchableOpacity>
 
             <TouchableOpacity
-                style={[styles.tab, activeTab === (userId ? 'Profile' : 'Login') && styles.activeTab]}
+                style={[styles.iconWrapper, activeTab === (userId ? 'Profile' : 'Login') && styles.activeIcon]}
                 onPress={() => handleNavigation(userId ? 'Profile' : 'Login')}
             >
                 <Ionicons
                     name="person-outline"
-                    size={24}
-                    color={activeTab === (userId ? 'Profile' : 'Login') ? COLORS.white : COLORS.lightGray}
-                />
+                    size={28}
+                    color={activeTab === (userId ? 'Profile' : 'Login') ? '#f44c00' : '#ddd'}
+                    style={styles.icon}
+               />
             </TouchableOpacity>
         </View>
     );
 };
 
 const styles = StyleSheet.create({
+    tabBarStyle: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        backgroundColor: '#f44c00',
+        position: 'absolute',
+        bottom: 25, // Ensure proper placement above the screen edge
+        left: 10,
+        right: 10,
+        borderRadius: 25,
+        height: 70, // Adjust height to fit the design
+        paddingVertical: 5, // Add padding for better spacing
+        shadowColor: '#000',
+        shadowOpacity: 0.2,
+        shadowOffset: { width: 0, height: 8 },
+        shadowRadius: 10,
+        elevation: 5,
+    },
     iconWrapper: {
         width: 50,
         height: 50,
         borderRadius: 25,
         justifyContent: 'center',
         alignItems: 'center',
+        marginTop: -15, // Adjusted to move icons upwards, touching the tab bar's top edge
         backgroundColor: 'transparent',
     },
     activeIcon: {
@@ -101,38 +123,17 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.5,
         shadowOffset: { width: 0, height: 5 },
         shadowRadius: 10,
-    },
-    container: {
-        flexDirection: 'row',
-        justifyContent: 'space-evenly', // Ensures the icons are spaced evenly
-        alignItems: 'center',
-        backgroundColor: COLORS.primary,
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        height: Dimensions.get('window').height * 0.1,
-        elevation: 10,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 5,
-    },
-    tab: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 10,
-        flex: 1,
-    },
-    activeTab: {
-        backgroundColor: COLORS.secondary, // Optional active tab background color
+        marginTop: -40,
     },
     cartIconContainer: {
         position: 'relative',
         alignItems: 'center',
+        justifyContent: 'center', // Ensure the cart icon is vertically aligned
     },
     cartBadge: {
         position: 'absolute',
         top: -5,
-        right: -10,
+        right: -5, // Adjusted to ensure proper placement
         backgroundColor: 'red',
         borderRadius: 10,
         minWidth: 16,
@@ -145,15 +146,12 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: 'bold',
     },
-    label: {
-        marginTop: 5,
-        fontSize: 12,
-        color: COLORS.lightGray,
-    },
-    activeLabel: {
-        color: COLORS.white,
-        fontWeight: 'bold',
+    icon: {
+        marginTop: -10,
+
     },
 });
+
+
 
 export default FooterNavigation;

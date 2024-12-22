@@ -1,6 +1,6 @@
 import {
   Dimensions, View, Text, SafeAreaView, StyleSheet, Image, TextInput, TouchableOpacity, FlatList,
-  ActivityIndicator, Alert, useWindowDimensions,Animated
+  ActivityIndicator, Alert, useWindowDimensions, Animated
 } from
   'react-native'
 import React, { useState, useEffect, useRef } from 'react'
@@ -11,9 +11,7 @@ import { ScrollView } from 'react-native-virtualized-view'
 import { StatusBar } from 'expo-status-bar'
 import CustomModal from '../components/CustomModal'
 import Carousel from 'react-native-reanimated-carousel';
-// import restaurant6 from '../assets/images/restaurants/restaurant6.png';
-// import restaurant7 from '../assets/images/restaurants/restaurant7.png';
-// import restaurant8 from '../assets/images/restaurants/restaurant8.png';
+import restaurant6 from '../assets/images/restaurants/restaurant6.png';
 import GeneralService from '../services/general.service'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useFocusEffect, useNavigation } from '@react-navigation/native'
@@ -23,7 +21,6 @@ import { ToastAndroid } from 'react-native';
 import { cartStyles } from '../styles/CartStyles'
 import { useCart } from '../context/CartContext';
 import { debounce } from 'lodash';
-import BottomTabNavigation from '../navigations/BottomTabNavigation'
 const placeholderImage = require('../assets/images/restaurants/restaurant6.png');
 
 const HomeV2 = ({ navigation }) => {
@@ -36,8 +33,8 @@ const HomeV2 = ({ navigation }) => {
     setScrollOffset(contentOffset.y);
   };
 
-  const { updateCartCounter, updateUserAddress } = useCart();
-  const [sliders, setSliders] = useState([]);
+  const { updateCartCounter, updateUserAddress, addItemToCart, removeItemFromCart, decreaseQty, cartItems } = useCart();
+  const [sliders, setSliders] = useState([restaurant6]);
   // const [sliders, setSliders] = useState(Array.from({ length: 6 }, (_, index) => ({ id: index, name: 'Loading...', image: '' })));
   const [searchQuery, setSearchQuery] = useState('');
   const [notificationData, setNotificationData] = useState({});
@@ -116,11 +113,15 @@ const HomeV2 = ({ navigation }) => {
     }
   }
 
-  const decreaseQuantity = (catId, prodId) => {
+  const getQuantityInCart = (productId) => {
+    // console.log(`id=${productId}`);
+    const item = cartItems.find(i => i.id === productId);
+    return item ? item.quantity : 0;
+  };
+
+  const decreaseQuantity = (catId, prodId, product) => {
     const decreaseQnty = async () => {
       try {
-        // setScreenLoading(true);
- 
         if (catId == 1) {
           const updatedProducts = fruits.map(product => {
             if (product.id === prodId) {
@@ -134,6 +135,7 @@ const HomeV2 = ({ navigation }) => {
           setFruits(updatedProducts);
         } else if (catId == 2) {
           const updatedProducts = vegetables.map(product => {
+            console.log(product);
             if (product.id === prodId) {
               return {
                 ...product,
@@ -230,28 +232,12 @@ const HomeV2 = ({ navigation }) => {
           console.log(updatedProducts);
         }
 
-        const timeout = 2000;
-        let userId = await AsyncStorage.getItem("_id");
-        const response = await Promise.race([
-          GeneralService.decreaseQty(userId, prodId),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), timeout))
-        ]);
-
-        if (response) {
-
-          console.log(response);
-          // showToast('Quantity decreased');
-
-          getCartCounter();
-          // setScreenLoading(false);
-        } else {
-          throw new Error('No response from the server');
-        }
+        decreaseQty(product);
       } catch (err) {
-        console.log(err?.response?.data);
+        console.log(err);
       }
     }
-
+    // getCartCounter();
     decreaseQnty();
   };
 
@@ -381,150 +367,139 @@ const HomeV2 = ({ navigation }) => {
     }
   }
 
-  const addCartNew = async (id) => {
-    try {
-      console.log("adding");
-      const response = await addToCart(id);
-      // console.log(response);
-      // showToast('Added to cart');
+  
+  const addCart = async (catId, prodId, product) => {
+    // if (!loggedInId) {
+    //   navigate("/sign-in");
+    // }
 
-    } catch (err) {
-      console.log(err);
+    // alert(JSON.stringify(product));
+    let allowdStock = product.stock_available;
+    let allowdQty = product.max_qty;
+    let addedQty = getQuantityInCart(prodId);
+
+    const increaseQnty = async () => {
+      try {
+        if (catId == 1) {
+          const updatedProducts = fruits.map(product => {
+            if (product.id === prodId) {
+              return {
+                ...product,
+                quantity_added: parseInt(product.quantity_added || 0) + 1
+              };
+            }
+            return product;
+          });
+          setFruits(updatedProducts);
+        } else if (catId == 2) {
+          const updatedProducts = vegetables.map(product => {
+            if (product.id === prodId) {
+              return {
+                ...product,
+                quantity_added: parseInt(product.quantity_added || 0) + 1
+              };
+            }
+            return product;
+          });
+          setVegetables(updatedProducts);
+          // console.log(updatedProducts);
+        } else if (catId == 8) {
+          const updatedProducts = dryFruits.map(product => {
+            if (product.id === prodId) {
+              return {
+                ...product,
+                quantity_added: parseInt(product.quantity_added || 0) + 1
+              };
+            }
+            return product;
+          });
+          setDryFruits(updatedProducts);
+          console.log(updatedProducts);
+        } else if (catId == 9) {
+          const updatedProducts = snacks.map(product => {
+            if (product.id === prodId) {
+              return {
+                ...product,
+                quantity_added: parseInt(product.quantity_added || 0) + 1
+              };
+            }
+            return product;
+          });
+          setSnacks(updatedProducts);
+          console.log(updatedProducts);
+        } else if (catId == 13) {
+          const updatedProducts = spices.map(product => {
+            if (product.id === prodId) {
+              return {
+                ...product,
+                quantity_added: parseInt(product.quantity_added || 0) + 1
+              };
+            }
+            return product;
+          });
+          setSpices(updatedProducts);
+          console.log(updatedProducts);
+        } else if (catId == 12) {
+          const updatedProducts = peeledVgs.map(product => {
+            if (product.id === prodId) {
+              return {
+                ...product,
+                quantity_added: parseInt(product.quantity_added || 0) + 1
+              };
+            }
+            return product;
+          });
+          setPeeledVgs(updatedProducts);
+          console.log(updatedProducts);
+        } else if (catId == 14) {
+          const updatedProducts = meat.map(product => {
+            if (product.id === prodId) {
+              return {
+                ...product,
+                quantity_added: parseInt(product.quantity_added || 0) + 1
+              };
+            }
+            return product;
+          });
+          setMeat(updatedProducts);
+          console.log(updatedProducts);
+        } else if (catId == 15) {
+          const updatedProducts = milk.map(product => {
+            if (product.id === prodId) {
+              return {
+                ...product,
+                quantity_added: parseInt(product.quantity_added || 0) + 1
+              };
+            }
+            return product;
+          });
+          setMilk(updatedProducts);
+          console.log(updatedProducts);
+        } else if (catId == 16) {
+          const updatedProducts = aata.map(product => {
+            if (product.id === prodId) {
+              return {
+                ...product,
+                quantity_added: parseInt(product.quantity_added || 0) + 1
+              };
+            }
+            return product;
+          });
+          setAata(updatedProducts);
+          console.log(updatedProducts);
+        }
+
+        addItemToCart(product);
+      } catch (err) {
+        console.log(err);
+      }
     }
-  }
-
-  const addCart = async (catId, prodId) => {
-    try {
-      console.log(catId, prodId);
-
-      if (catId == 1) {
-        const updatedProducts = fruits.map(product => {
-          if (product.id === prodId) {
-            return {
-              ...product,
-              quantity_added: parseInt(product.quantity_added || 0) + 1
-            };
-          }
-          return product;
-        });
-        setFruits(updatedProducts);
-      } else if (catId == 2) {
-        const updatedProducts = vegetables.map(product => {
-          if (product.id === prodId) {
-            return {
-              ...product,
-              quantity_added: parseInt(product.quantity_added || 0) + 1
-            };
-          }
-          return product;
-        });
-        setVegetables(updatedProducts);
-        console.log(updatedProducts);
-      } else if (catId == 8) {
-        const updatedProducts = dryFruits.map(product => {
-          if (product.id === prodId) {
-            return {
-              ...product,
-              quantity_added: parseInt(product.quantity_added || 0) + 1
-            };
-          }
-          return product;
-        });
-        setDryFruits(updatedProducts);
-        console.log(updatedProducts);
-      } else if (catId == 9) {
-        const updatedProducts = snacks.map(product => {
-          if (product.id === prodId) {
-            return {
-              ...product,
-              quantity_added: parseInt(product.quantity_added || 0) + 1
-            };
-          }
-          return product;
-        });
-        setSnacks(updatedProducts);
-        console.log(updatedProducts);
-      } else if (catId == 13) {
-        const updatedProducts = spices.map(product => {
-          if (product.id === prodId) {
-            return {
-              ...product,
-              quantity_added: parseInt(product.quantity_added || 0) + 1
-            };
-          }
-          return product;
-        });
-        setSpices(updatedProducts);
-        console.log(updatedProducts);
-      } else if (catId == 12) {
-        const updatedProducts = peeledVgs.map(product => {
-          if (product.id === prodId) {
-            return {
-              ...product,
-              quantity_added: parseInt(product.quantity_added || 0) + 1
-            };
-          }
-          return product;
-        });
-        setPeeledVgs(updatedProducts);
-        console.log(updatedProducts);
-      } else if (catId == 14) {
-        const updatedProducts = meat.map(product => {
-          if (product.id === prodId) {
-            return {
-              ...product,
-              quantity_added: parseInt(product.quantity_added || 0) + 1
-            };
-          }
-          return product;
-        });
-        setMeat(updatedProducts);
-        console.log(updatedProducts);
-      } else if (catId == 15) {
-        const updatedProducts = milk.map(product => {
-          if (product.id === prodId) {
-            return {
-              ...product,
-              quantity_added: parseInt(product.quantity_added || 0) + 1
-            };
-          }
-          return product;
-        });
-        setMilk(updatedProducts);
-        console.log(updatedProducts);
-      } else if (catId == 16) {
-        const updatedProducts = aata.map(product => {
-          if (product.id === prodId) {
-            return {
-              ...product,
-              quantity_added: parseInt(product.quantity_added || 0) + 1
-            };
-          }
-          return product;
-        });
-        setAata(updatedProducts);
-        console.log(updatedProducts);
+    console.log(`${parseInt(allowdStock)}`);
+    // getCartCounter();
+    if (parseInt(addedQty) < parseInt(allowdStock)) {
+      if (parseInt(addedQty) < parseInt(allowdQty)) {
+        increaseQnty();
       }
-
-      const timeout = 2000;
-      let userId = await AsyncStorage.getItem("_id");
-      const response = await Promise.race([
-        GeneralService.addCart(userId, prodId),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), timeout))
-      ]);
-
-      if (response) {
-
-        console.log(response);
-        // showToast('Added to cart');
-
-        getCartCounter();
-      } else {
-        throw new Error('No response from the server');
-      }
-
-    } catch (err) {
-      // showToast("Error adding to cart");
     }
   }
 
@@ -888,52 +863,48 @@ const HomeV2 = ({ navigation }) => {
         }}>
         </View>
 
-        {/* <Carousel 
-  loop 
-  width={width} 
-  height={width / 3} 
-  autoPlay={true} 
-  data={sliders}
-  scrollAnimationDuration={3500}
-  // onSnapToItem={(index) => console.log('current index:', index)}
-  style={{
-    width: SIZES.width - 32,
-    borderColor: COLORS.tertiaryGray,
-    borderWidth: 1,
-    paddingBottom: 2,
-    marginBottom: 12,
-    borderRadius: 15
-  }}
-  renderItem={({ item, index }) => (
-    // console.log(item),
-    <View style={{
-      flex: 1,
-      borderWidth: 1,
-      justifyContent: 'center',
-    }}>
-      {loadedImages[index] ? (
-        <Image
-          source={{ uri: `https://api.veggieking.pk/public/upload/${item}` }}
-          onLoad={() => handleImageLoad(index)}
+        <Carousel loop width={width} height={width / 3} autoPlay={true} data={sliders}
+          scrollAnimationDuration={3500}
+          // onSnapToItem={(index) => console.log('current index:', index)}
           style={{
-            width: SIZES.width - 1,
-            height: width / 2,
+            width: SIZES.width - 32,
+            borderColor: COLORS.tertiaryGray,
+            borderWidth: 1,
+            paddingBottom: 2,
+            marginBottom: 12,
             borderRadius: 15
           }}
+          renderItem={({ item, index }) => (
+            // console.log(item),
+            <View style={{
+              flex: 1,
+              borderWidth: 1,
+              justifyContent: 'center',
+            }}>
+              {loadedImages[index] ? (
+                <Image
+                  source={{ uri: `https://api.veggieking.pk/public/upload/${item}` }}
+                  onLoad={() => handleImageLoad(index)}
+                  style={{
+                    width: SIZES.width - 1,
+                    height: width / 2,
+                    borderRadius: 15
+                  }}
+                />
+              ) : (
+                <Image
+                  source={placeholderImage}
+                  style={{
+                    width: SIZES.width - 1,
+                    height: width / 2,
+                    borderRadius: 15
+                  }}
+                />
+              )}
+
+            </View>
+          )}
         />
-      ) : (
-        <Image
-          source={placeholderImage}
-          style={{
-            width: SIZES.width - 1,
-            height: width / 2,
-            borderRadius: 15
-          }}
-        />
-      )}
-    </View>
-  )}
-/> */}
       </View>
     );
   }
@@ -1170,787 +1141,15 @@ const HomeV2 = ({ navigation }) => {
       </View>
     );
   };
-
-
-
-  const renderFeatureProductsNew = () => {
-    const [quantity, setQuantity] = useState(1);
-
-    const numColumns = 2;
-    let result = <View style={{ flex: 1 }}>
-      <View style={{
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginVertical: 8,
-        alignItems: 'center',
-        // paddingHorizontal: 16
-      }}>
-
-        <Text style={{ ...FONTS.body2 }}>Featured Products</Text>
-        <TouchableOpacity onPress={() => navigation.navigate("RestaurantView")}
-          style={{ flexDirection: 'row', alignItems: 'center', position: "absolute", right: 6 }}
-        >
-          <Text style={{ fontSize: 16, fontFamily: 'regular', marginRight: 4 }}>See All</Text>
-          <View>
-            <MaterialIcons name="keyboard-arrow-right" size={24} color={COLORS.gray4} />
-          </View>
-        </TouchableOpacity>
-
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <TouchableOpacity
-            onPress={() => decreaseQuantity(item.prod_id)}
-            style={cartStyles.roundedBtn}
-          >
-            <Text style={cartStyles.body2}>-</Text>
-          </TouchableOpacity>
-          <Text style={{
-            fontSize: 16,
-            fontFamily: 'regular',
-            color: COLORS.white,
-            marginHorizontal: 12
-          }}>{item.quantity}</Text>
-          <TouchableOpacity
-            // id={item.id}
-            onPress={() => addCart(item.id)}
-            style={cartStyles.roundedBtn}
-          >
-            <Text style={cartStyles.body2}>+</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-      <FlatList
-        showsHorizontalScrollIndicator={false}
-        horizontal={true}
-        data={moreProd} keyExtractor={item => item.id}
-        contentContainerStyle={{ paddingHorizontal: 8 }}
-        // style={{
-        //   marginBottom: "30%",
-        // }}
-        renderItem={({ item, index }) => {
-          return (
-            <TouchableOpacity key={index} onPress={() => navigate.navigate("FoodDetails", {
-              id: item.id, name: item.name, description: item.description,
-              image: item.image, price: item.price, minQty: 1, type: "kg"
-            })}
-              style={{
-                flexDirection: 'column',
-                paddingHorizontal: 2,
-                paddingVertical: 4,
-                height: "auto",
-                width: 160,
-                borderWidth: 1,
-                borderColor: "#f78c47",
-                borderRadius: 20,
-                marginRight: 6,
-                marginLeft: 0,
-                marginBottom: 16
-              }}
-            >
-              <Image source={{ uri: `https://api.veggieking.pk/public/upload/${item.image}` }} resizeMode='cover' style={{
-                borderTopLeftRadius: 20,
-                borderTopRightRadius: 20,
-                width: '100%',
-                height: 84,
-              }} />
-
-              <TouchableOpacity onPress={() => addCart(item.id)}
-                style={{
-                  height: 30,
-                  width: 30,
-                  borderRadius: 15,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: COLORS.primary,
-                  position: 'absolute',
-                  right: 0
-                }}>
-                <AntDesign name="plus" size={12} color={COLORS.white} />
-              </TouchableOpacity>
-              <View style={{
-                padding: 8,
-                // bottom: 10,
-              }}>
-
-                <View style={{
-                  flexDirection: 'row',
-                  flexWrap: 'wrap-reverse',
-                  position: 'relative',
-                }}>
-                  <Text style={{ fontSize: 18, textTransform: 'capitalize', }}>{item.name}</Text>
-                  {/* <TouchableOpacity onPress={()=> addCart(item.id)}
-              style={{
-                      height: 30,
-                      width: 30,
-                      borderRadius: 15,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: COLORS.primary,
-                      position: 'absolute', // absolute positioning
-                      right: 0 // positioned to the left
-                    }}>
-              <AntDesign name="plus" size={12} color={COLORS.white} />
-            </TouchableOpacity> */}
-                </View>
-                <Text style={{ fontFamily: 'regular', marginVertical: 3 }}>Rs. {item.price}</Text>
-              </View>
-            </TouchableOpacity>
-          )
-        }}
-      />
-    </View>;
-
-    let response = moreProd.length > 0 ? result : <View style={{ flex: 1 }}>
-      <Text style={{
-        color: COLORS.black,
-        fontSize: 14,
-        fontFamily: 'regular',
-        textAlign: 'center'
-      }}>No record found</Text></View>;
-
-    response = featureLoading ?
-      <ActivityIndicator size="large" color="blue" /> : result
-    return (
-      response
-    );
-  }
-
-  const renderFeatureProducts = () => {
-    const [quantity, setQuantity] = useState(1);
-    const width = Dimensions.get('window').width;
-
-    const numColumns = 2;
-    let result = <View style={{ flex: 1 }}>
-      <View style={{
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginVertical: 8,
-        alignItems: 'center',
-        // paddingHorizontal: 16
-      }}>
-
-        <Text style={{ ...FONTS.body2 }}>Featured Products</Text>
-
-        <TouchableOpacity onPress={() => {
-          if (quantity > 2) {
-            setQuantity(quantity - 1)
-          }
-        }}
-          style={{
-            width: 24,
-            height: 24,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: 12,
-            backgroundColor: 'rgba(255,255,255,0.2)'
-          }}
-        >
-          <Text style={{ color: COLORS.white }}>-</Text>
-        </TouchableOpacity>
-        <Text style={{ fontSize: 16, color: COLORS.white }}>{quantity}</Text>
-        <TouchableOpacity onPress={() => setQuantity(quantity + 1)}
-          style={{
-            width: 24,
-            height: 24,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: 12,
-            backgroundColor: 'rgba(255,255,255,0.2)'
-          }}
-        >
-          <Text style={{ color: COLORS.white }}>+</Text>
-        </TouchableOpacity>
-      </View>
-      <FlatList
-        showsHorizontalScrollIndicator={false}
-        // horizontal={true}
-        numColumns={2}
-        data={featureProd} keyExtractor={item => item.id}
-        contentContainerStyle={{ paddingHorizontal: 8 }}
-        style={{
-          marginBottom: "15%",
-        }}
-        renderItem={({ item, index }) => {
-          return (
-            <TouchableOpacity
-              onPress={() => navigation.navigate("FoodDetails", { id: item.id, description: item.description, name: item.name, image: item.image, price: item.price, minQty: 1, quantity_added: item.quantity_added, type: "kg" })}
-              key={index}
-              style={{
-                flexDirection: 'column',
-                paddingHorizontal: 2,
-                paddingVertical: 4,
-                height: "auto",
-                width: 160,
-                borderWidth: 1,
-                borderColor: COLORS.gray6,
-                borderRadius: 15,
-                marginRight: 6,
-                marginBottom: 16
-              }}>
-              <Image
-                source={{ uri: `https://api.veggieking.pk/public/upload/${item.image}` }}
-                resizeMode='cover'
-                style={{ width: "100%", height: 84, borderRadius: 15 }}
-              />
-              <Text style={{ fontSize: 14, fontFamily: "bold", marginVertical: 4 }}>{item.name}</Text>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ fontSize: 15, fontFamily: 'bold' }}>Rs. {item.price}</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  {item.quantity_added >= 1 && (
-                    <>
-                      <TouchableOpacity
-                        onPress={() => decreaseQuantity("featured", item.id)}
-                        style={[cartStyles.roundedBtn, { backgroundColor: '#f44c00', marginRight: 4 }]}>
-                        <Text style={cartStyles.body2}>-</Text>
-                      </TouchableOpacity>
-                      <Text style={{ fontSize: 16, fontFamily: 'regular', marginHorizontal: 4 }}>{item.quantity_added}</Text>
-                    </>
-                  )}
-                  <TouchableOpacity
-                    onPress={() => addCart("featured", item.id)}
-                    style={[cartStyles.roundedBtn,
-                    { backgroundColor: '#f44c00' }]}>
-                    <Text style={cartStyles.body2}>+</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </TouchableOpacity>
-          )
-        }}
-      />
-    </View>;
-
-    let response = moreProd.length > 0 ? result : <View style={{ flex: 1 }}>
-      <Text style={{
-        color: COLORS.black,
-        fontSize: 14,
-        fontFamily: 'regular',
-        textAlign: 'center'
-      }}>No record found</Text></View>;
-
-    // response = featureLoading ? <ActivityIndicator size="large" color="blue" /> : result
-    response = result
-    return (
-      response
-    );
-  }
+  
 
   const renderVerticalProducts = (id, title, data, isLast) => {
     const [quantity, setQuantity] = useState(1);
-    const windowWidth = Dimensions.get("window").width;
-    const horizontalSpacing = 15; // Adjust as needed
-    const marginRight = 15; // Adjust as needed
+    const windowWidth = Dimensions.get('window').width;
+    const horizontalSpacing = 13; // Adjust as needed
+    const marginRight = 13; // Adjust as needed
     const itemWidth = (windowWidth - 2 * horizontalSpacing - marginRight) / 2;
-  
-    const numColumns = 2;
-    let marginBottomStyle = { marginBottom: isLast ? "20%" : "10%" }; // Added spacing for bottom navigation bar
-  
-    let result = (
-      <View style={{ flex: 1, ...marginBottomStyle }}>
-        {/* Title and See All Section */}
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 10,
-          }}
-        >
-          <Text
-            style={{
-              ...FONTS.body2,
-              fontFamily: "bold",
-              color: COLORS.primary,
-            }}
-          >
-            {title}
-          </Text>
-  
-          <TouchableOpacity
-            onPress={() =>
-              navigate.navigate("CategoryProducts", {
-                catId: id,
-                catName: title,
-              })
-            }
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 16,
-                fontFamily: "bold",
-                color: COLORS.primary,
-              }}
-            >
-              See All
-            </Text>
-            <MaterialIcons
-              name="keyboard-arrow-right"
-              size={24}
-              color={COLORS.primary}
-            />
-          </TouchableOpacity>
-        </View>
-  
-        {/* Product List */}
-        <FlatList
-          showsHorizontalScrollIndicator={false}
-          numColumns={numColumns}
-          data={data}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={{
-            paddingHorizontal: 8,
-            paddingBottom: 50, // Added bottom padding for navigation bar space
-          }}
-          renderItem={({ item, index }) => {
-            return (
-              <TouchableOpacity
-                onPress={() =>
-                  navigation.navigate("FoodDetails", {
-                    id: item.id,
-                    description: item.description,
-                    name: item.name,
-                    image: item.image,
-                    price: item.price,
-                    minQty: 1,
-                    quantity_added: item.quantity_added,
-                    type: "kg",
-                    stock: item.stock_available,
-                    max_qty: item.max_qty,
-                  })
-                }
-                key={index}
-                style={{
-                  flexDirection: "column",
-                  paddingHorizontal: 10,
-                  paddingVertical: 10,
-                  width: itemWidth,
-                  borderWidth: 1,
-                  borderColor: COLORS.gray6,
-                  borderRadius: 15,
-                  marginRight: 10,
-                  marginBottom: 16,
-                  backgroundColor: "#fff",
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.2,
-                  shadowRadius: 5,
-                  elevation: 2,
-                }}
-              >
-                {/* Image */}
-                <Image
-                  source={{
-                    uri: `https://api.veggieking.pk/public/upload/${item.image}`,
-                  }}
-                  resizeMode="cover"
-                  style={{
-                    width: "100%",
-                    height: 110,
-                    borderRadius: 15,
-                  }}
-                />
-  
-                {/* Product Name */}
-                <Text
-                  style={{
-                    fontSize: 14,
-                    fontFamily: "bold",
-                    marginVertical: 6,
-                    color: COLORS.primary,
-                    flex: 1,
-                  }}
-                >
-                  {item.name}
-                </Text>
-  
-                {/* Price and Cart Actions */}
-                <View
-                  style={{
-                    flexDirection: "row",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  {item.stock_available > 0 && (
-                    <Text
-                      style={{
-                        fontSize: 16,
-                        fontFamily: "bold",
-                        color: COLORS.black,
-                      }}
-                    >
-                      Rs. {item.price}
-                    </Text>
-                  )}
-                  {item.stock_available === 0 && (
-                    <Text
-                      style={{
-                        fontSize: 15,
-                        fontFamily: "bold",
-                        color: "red",
-                      }}
-                    >
-                      Out of Stock
-                    </Text>
-                  )}
-                  {item.stock_available > 0 && (
-                    <View style={{ flexDirection: "row", alignItems: "center" }}>
-                      {item.quantity_added >= 1 && (
-                        <>
-                          <TouchableOpacity
-                            onPress={() => decreaseQuantity(id, item.id)}
-                            style={{
-                              width: 28,
-                              height: 28,
-                              borderRadius: 14,
-                              backgroundColor: "#7cc000",
-                              justifyContent: "center",
-                              alignItems: "center",
-                              marginRight: 6,
-                            }}
-                          >
-                            <Text style={{ color: COLORS.white, fontSize: 16 }}>
-                              -
-                            </Text>
-                          </TouchableOpacity>
-                          <Text
-                            style={{ fontSize: 16, marginHorizontal: 4 }}
-                          >
-                            {item.quantity_added}
-                          </Text>
-                        </>
-                      )}
-                      <TouchableOpacity
-                        onPress={() => addCart(id, item.id)}
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 14,
-                          backgroundColor: "#f44c00",
-                          justifyContent: "center",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Text style={{ color: COLORS.white, fontSize: 16 }}>
-                          +
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-              </TouchableOpacity>
-            );
-          }}
-        />
-      </View>
-    );
-  
-    return data.length > 0 ? result : null;
-  };
-  
-
-
-  const renderVegetables = () => {
-    const [quantity, setQuantity] = useState(1);
-    const width = Dimensions.get('window').width;
-    // const flatListRef = useRef(null);
-    // const [scrollIndex, setScrollIndex] = useState(null);
-
-    // const scrollToIndex = (index) => {
-    //   if (flatListRef.current && index !== null && index !== undefined) {
-    //     flatListRef.current.scrollToIndex({
-    //       animated: true,
-    //       index: index,
-    //       viewPosition: 0.5, // Adjust the view position for the scrolled item
-    //     });
-    //   }
-    // };
-
-    // useEffect(() => {
-    //   if (scrollIndex !== null) {
-    //     scrollToIndex(scrollIndex);
-    //     setScrollIndex(null); // Reset scroll index after scrolling
-    //   }
-    // }, [scrollIndex]);
-
-    // const getItemLayout = (data, index) => ({
-    //   length: 100,
-    //   offset: 100 * index,
-    //   index,
-    // });
-
-    // const addCart2 = async (type, prodId, index) => {
-    //   try {
-
-    //     if (type == "fruits") {
-    //       const updatedProducts = fruits.map(product => {
-    //         if (product.id === prodId) {
-    //           return {
-    //             ...product,
-    //             quantity_added: parseInt(product.quantity_added || 0) + 1
-    //           };
-    //         }
-    //         return product;
-    //       });
-    //       setFruits(updatedProducts);
-    //       setScrollIndex(index);
-    //     } else if (type == "vegetables") {
-    //       const updatedProducts = vegetables.map(product => {
-    //         if (product.id === prodId) {
-    //           return {
-    //             ...product,
-    //             quantity_added: parseInt(product.quantity_added || 0) + 1
-    //           };
-    //         }
-    //         return product;
-    //       });
-    //       setVegetables(updatedProducts);
-    //       setScrollIndex(index);
-    //       console.log(updatedProducts);
-    //     }
-
-    //     const timeout = 2000;
-    //     let userId = await AsyncStorage.getItem("_id");
-    //     const response = await Promise.race([
-    //       GeneralService.addCart(userId, prodId),
-    //       new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), timeout))
-    //     ]);
-
-    //     if (response) {
-
-    //       console.log(response);
-    //       // showToast('Added to cart');
-
-    //       getCartCounter();
-    //     } else {
-    //       throw new Error('No response from the server');
-    //     }
-
-    //   } catch (err) {
-    //     // showToast("Error adding to cart");
-    //   }
-    // }
-
-
-    const numColumns = 2;
-    let result = <View style={{ flex: 1 }}>
-      <View style={{
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginVertical: 8,
-        alignItems: 'center',
-        // paddingHorizontal: 16
-      }}>
-        <Text style={{ ...FONTS.body2 }}>Vegetables</Text>
-      </View>
-      <FlatList
-        // ref={flatListRef}
-        // getItemLayout={getItemLayout}
-        showsHorizontalScrollIndicator={false}
-        horizontal={true}
-        data={vegetables} keyExtractor={item => item.id}
-        contentContainerStyle={{ paddingHorizontal: 8 }}
-        // style={{
-        //   marginBottom: "30%",
-        // }}
-        renderItem={({ item, index }) => {
-          return (
-            <TouchableOpacity
-              onPress={() => navigation.navigate("FoodDetails", { id: item.id, description: item.description, name: item.name, image: item.image, price: item.price, minQty: 1, type: "kg" })}
-              key={index}
-              style={{
-                flexDirection: 'column',
-                paddingHorizontal: 2,
-                paddingVertical: 4,
-                height: "auto",
-                width: 200,
-                borderWidth: 1,
-                borderColor: COLORS.gray6,
-                borderRadius: 15,
-                marginRight: 6,
-                marginBottom: 16
-              }}>
-              <Image
-                source={{ uri: `https://api.veggieking.pk/public/upload/${item.image}` }}
-                resizeMode='cover'
-                style={{ width: "100%", height: 84, borderRadius: 15 }}
-              />
-              <Text style={{ fontSize: 14, fontFamily: "bold", marginVertical: 4 }}>{item.name}</Text>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ fontSize: 15, fontFamily: 'bold' }}>Rs. {item.price}</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  {item.quantity_added >= 1 && (
-                    <>
-                      <TouchableOpacity
-                        onPress={() => decreaseQuantity("vegetables", item.id)}
-                        style={[cartStyles.roundedBtn, { backgroundColor: '#f44c00', marginRight: 4 }]}>
-                        <Text style={cartStyles.body2}>-</Text>
-                      </TouchableOpacity>
-                      <Text style={{ fontSize: 16, fontFamily: 'regular', marginHorizontal: 4 }}>{item.quantity_added}</Text>
-                    </>
-                  )}
-                  <TouchableOpacity onPress={() => addCart("vegetables", item.id)} style={[cartStyles.roundedBtn, { backgroundColor: '#f44c00' }]}>
-                    <Text style={cartStyles.body2}>+</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </TouchableOpacity>
-          )
-        }}
-      />
-    </View>;
-
-    let response = moreProd.length > 0 ? result : <View style={{ flex: 1 }}>
-      <Text style={{
-        color: COLORS.black,
-        fontSize: 14,
-        fontFamily: 'regular',
-        textAlign: 'center'
-      }}>No record found</Text></View>;
-
-    // response = featureLoading ? <ActivityIndicator size="large" color="blue" /> : result
-    response = result
-    return (
-      response
-    );
-  }
-
-  // const renderProducts = (title, type, prodsData, isLast) => {
-  //   const [quantity, setQuantity] = useState(1);
-  //   const width = Dimensions.get('window').width;
-
-  //   const numColumns = 2;
-  //   let marginBottomStyle = {};
-  //   if (isLast) {
-  //     marginBottomStyle = { marginBottom: "20%" };
-  //   }
-
-  //   let result = <View style={{ flex: 1, ...marginBottomStyle }}>
-  //     <View style={{
-  //       flexDirection: 'row',
-  //       justifyContent: 'space-between',
-  //       marginVertical: 8,
-  //       alignItems: 'center',
-  //     }}>
-  //       <Text style={{ ...FONTS.body2 }}>{title}</Text>
-  //       <TouchableOpacity onPress={() => {
-  //         if (quantity > 2) {
-  //           setQuantity(quantity - 1)
-  //         }
-  //       }}
-  //         style={{
-  //           width: 24,
-  //           height: 24,
-  //           alignItems: 'center',
-  //           justifyContent: 'center',
-  //           borderRadius: 12,
-  //           backgroundColor: 'rgba(255,255,255,0.2)'
-  //         }}
-  //       >
-  //         <Text style={{ color: COLORS.white }}>-</Text>
-  //       </TouchableOpacity>
-  //       <Text style={{ fontSize: 16, color: COLORS.white }}>{quantity}</Text>
-  //       <TouchableOpacity onPress={() => setQuantity(quantity + 1)}
-  //         style={{
-  //           width: 24,
-  //           height: 24,
-  //           alignItems: 'center',
-  //           justifyContent: 'center',
-  //           borderRadius: 12,
-  //           backgroundColor: 'rgba(255,255,255,0.2)'
-  //         }}
-  //       >
-  //         <Text style={{ color: COLORS.white }}>+</Text>
-  //       </TouchableOpacity>
-  //     </View>
-
-  //     <FlatList
-  //       showsHorizontalScrollIndicator={false}
-  //       horizontal={true}
-  //       data={prodsData} keyExtractor={item => item.id}
-  //       contentContainerStyle={{ paddingHorizontal: 8 }}
-  //       // style={{ marginBottom: "20%" }}
-  //       renderItem={({ item, index }) => {
-  //         return (
-  //           <TouchableOpacity
-  //             onPress={() => navigation.navigate("FoodDetails", { id: item.id, name: item.name, image: item.image, price: item.price, minQty: 1, type: "kg" })}
-  //             key={index}
-  //             style={{
-  //               flexDirection: 'column',
-  //               paddingHorizontal: 2,
-  //               paddingVertical: 4,
-  //               height: "auto",
-  //               width: 200,
-  //               borderWidth: 1,
-  //               borderColor: COLORS.gray6,
-  //               borderRadius: 15,
-  //               marginRight: 6,
-  //               marginBottom: 16
-  //             }}>
-  //             <Image
-  //               source={{ uri: `https://api.veggieking.pk/public/upload/${item.image}` }}
-  //               resizeMode='cover'
-  //               style={{ width: "100%", height: 84, borderRadius: 15 }}
-  //             />
-  //             <Text style={{ fontSize: 14, fontFamily: "bold", marginVertical: 4 }}>{item.name}</Text>
-  //             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-  //               <Text style={{ fontSize: 15, fontFamily: 'bold' }}>Rs. {item.price}</Text>
-  //               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-  //                 {item.quantity_added >= 1 && (
-  //                   <>
-  //                     <TouchableOpacity
-  //                       onPress={() => decreaseQuantity(type, item.id)}
-  //                       style={[cartStyles.roundedBtn, { backgroundColor: '#f44c00', marginRight: 4 }]}>
-  //                       <Text style={cartStyles.body2}>-</Text>
-  //                     </TouchableOpacity>
-  //                     <Text style={{ fontSize: 16, fontFamily: 'regular', marginHorizontal: 4 }}>{item.quantity_added}</Text>
-  //                   </>
-  //                 )}
-  //                 <TouchableOpacity onPress={() => addCart(type, item.id)} style={[cartStyles.roundedBtn, { backgroundColor: '#f44c00' }]}>
-  //                   <Text style={cartStyles.body2}>+</Text>
-  //                 </TouchableOpacity>
-  //               </View>
-  //             </View>
-  //           </TouchableOpacity>
-  //         )
-  //       }}
-  //     />
-  //   </View>;
-
-  //   let response = moreProd.length > 0 ? result : <View style={{ flex: 1 }}>
-  //     <Text style={{
-  //       color: COLORS.black,
-  //       fontSize: 14,
-  //       fontFamily: 'regular',
-  //       textAlign: 'center'
-  //     }}>No record found</Text></View>;
-
-  //   // response = featureLoading ? <ActivityIndicator size="large" color="blue" /> : result
-  //   response = result
-  //   return (
-  //     response
-  //   );
-  // }
-
-  const renderProducts = (title, type, prodsData, isLast) => {
-    const flatListRef = useRef(null);
-
-    useEffect(() => {
-      // Scroll to the previous position after re-rendering
-      if (flatListRef.current) {
-        flatListRef.current.scrollToIndex({ index: 20, animated: false });
-      }
-    }, [prodsData]);
-
-    const handleScrollToIndexFailed = (info) => {
-      console.warn(`Scroll to index failed: ${info.index}`);
-    };
-
-    const [quantity, setQuantity] = useState(1);
-    const width = Dimensions.get('window').width;
+    // const itemWidth = (windowWidth - 24) / 2;
 
     const numColumns = 2;
     let marginBottomStyle = {};
@@ -1958,14 +1157,27 @@ const HomeV2 = ({ navigation }) => {
       marginBottomStyle = { marginBottom: "20%" };
     }
 
-    let result = <View style={{ flex: 1, ...marginBottomStyle }}>
+    // let result = <View style={{ flex: 1, ...marginBottomStyle }}>
+    let result = <View style={{ flex: 1 }}>
       <View style={{
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginVertical: 8,
         alignItems: 'center',
+        // paddingHorizontal: 16
       }}>
-        <Text style={{ ...FONTS.body2 }}>{title}</Text>
+        <Text style={{ ...FONTS.body2, fontFamily: "bold", color: COLORS.primary }}>{title}</Text>
+
+        <TouchableOpacity onPress={() => navigate.navigate("CategoryProducts", {
+          catId: id, catName: title
+        })}
+          style={{ flexDirection: 'row', alignItems: 'center', position: "absolute", right: 6 }}
+        >
+          <Text style={{ fontSize: 16, fontFamily: 'bold', color: COLORS.primary }}>See All</Text>
+          <View>
+            <MaterialIcons name="keyboard-arrow-right" size={24} color={COLORS.primary} />
+          </View>
+        </TouchableOpacity>
+
         <TouchableOpacity onPress={() => {
           if (quantity > 2) {
             setQuantity(quantity - 1)
@@ -1996,72 +1208,145 @@ const HomeV2 = ({ navigation }) => {
           <Text style={{ color: COLORS.white }}>+</Text>
         </TouchableOpacity>
       </View>
-
-      <FlatList
-        ref={flatListRef}
-        initialScrollIndex={0}
-        onScrollToIndexFailed={handleScrollToIndexFailed}
-        showsHorizontalScrollIndicator={false}
-        horizontal={true}
-        data={prodsData} keyExtractor={item => item.id.toString()}
-        contentContainerStyle={{ paddingHorizontal: 8 }}
-        // style={{ marginBottom: "20%" }}
-        renderItem={({ item, index }) => {
-          return (
-            <TouchableOpacity
-              onPress={() => navigation.navigate("FoodDetails", { id: item.id, description: item.description, name: item.name, image: item.image, price: item.price, minQty: 1, type: "kg" })}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+        <FlatList
+          showsHorizontalScrollIndicator={false}
+          // horizontal={true}
+          numColumns={numColumns}
+          data={data} keyExtractor={item => item.id}
+          contentContainerStyle={{ paddingHorizontal: 8 }}
+          style={{
+            marginBottom: "5%",
+          }}
+          renderItem={({ item, index }) => {
+            // console.log(`${item.stock_available}`);
+            return (
+              <TouchableOpacity
+              onPress={() =>
+                navigation.navigate("FoodDetails", {
+                  id: item.id,
+                  description: item.description,
+                  name: item.name,
+                  image: item.image,
+                  price: item.price,
+                  minQty: 1,
+                  quantity_added: item.quantity_added,
+                  type: "kg",
+                  stock: item.stock_available,
+                  max_qty: item.max_qty,
+                })
+              }
               key={index}
               style={{
                 flexDirection: 'column',
-                paddingHorizontal: 2,
-                paddingVertical: 4,
-                height: "auto",
-                width: 200,
+                paddingHorizontal: 10,
+                paddingVertical: 10,
+                width: itemWidth,
                 borderWidth: 1,
                 borderColor: COLORS.gray6,
                 borderRadius: 15,
-                marginRight: 6,
-                marginBottom: 16
-              }}>
+                marginRight: 10,
+                marginBottom: 16,
+                backgroundColor: '#fff',  // Adds a clean white background
+                shadowColor: "#000",  // Adds shadow for depth effect
+                shadowOffset: {
+                  width: 0,
+                  height: 2,
+                },
+                shadowOpacity: 0.2,
+                shadowRadius: 5,
+                elevation: 2,
+                transition: 'all 0.3s ease-in-out',  // Smooth transition effect
+              }}
+            >
+              {/* Image */}
               <Image
                 source={{ uri: `https://api.veggieking.pk/public/upload/${item.image}` }}
                 resizeMode='cover'
-                style={{ width: "100%", height: 84, borderRadius: 15 }}
+                style={{
+                  width: "100%",
+                  height: 110,  // Increased height for better image view
+                  borderRadius: 15,
+                  transition: 'transform 0.3s ease-in-out',  // Smooth zoom effect on hover
+                }}
               />
-              <Text style={{ fontSize: 14, fontFamily: "bold", marginVertical: 4 }}>{item.name}</Text>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ fontSize: 15, fontFamily: 'bold' }}>Rs. {item.price}</Text>
+            
+              {/* Product Name */}
+              <Text style={{
+                fontSize: 14,
+                fontFamily: "bold",
+                marginVertical: 6,
+                color: COLORS.primary,  // Highlighting the name with primary color
+                flex: 1,  // Make this take available space
+              }}>
+                {item.name}
+              </Text>
+            
+              {/* Price and Cart Actions */}
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginTop: 8,  // Space between text and buttons
+              }}>
+                {item.stock_available > 0 && (<Text style={{ fontSize: 16, fontFamily: 'bold', color: COLORS.black }}>Rs. {item.price}</Text>)}
+                {item.stock_available == 0 && (
+    <View style={styles.outOfStockBadge}>
+        <Text style={styles.outOfStockText}>Out of Stock</Text>
+    </View>
+)}                 {
+              item.stock_available > 0 && (
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  {item.quantity_added >= 1 && (
+                  {getQuantityInCart(item.id) > 0 && (
                     <>
                       <TouchableOpacity
-                        onPress={() => decreaseQuantity(type, item.id)}
-                        style={[cartStyles.roundedBtn, { backgroundColor: '#f44c00', marginRight: 4 }]}>
-                        <Text style={cartStyles.body2}>-</Text>
+                        onPress={() => decreaseQuantity(id, item.id, item)}
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 14,
+                          backgroundColor: '#7cc000',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          marginRight: 6,
+                        }}
+                      >
+                        <Text style={{ color: COLORS.white, fontSize: 16 }}>-</Text>
                       </TouchableOpacity>
-                      <Text style={{ fontSize: 16, fontFamily: 'regular', marginHorizontal: 4 }}>{item.quantity_added}</Text>
+                      <Text style={{ fontSize: 16, marginHorizontal: 4 }}>
+                        {getQuantityInCart(item.id)}
+                      </Text>
                     </>
                   )}
-                  <TouchableOpacity onPress={() => addCart(type, item.id)} style={[cartStyles.roundedBtn, { backgroundColor: '#f44c00' }]}>
-                    <Text style={cartStyles.body2}>+</Text>
+                  <TouchableOpacity
+                    onPress={() => addCart(id, item.id, item)}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 14,
+                      backgroundColor: '#f44c00',  // Button with brand color
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text style={{ color: COLORS.white, fontSize: 16 }}>+</Text>
                   </TouchableOpacity>
                 </View>
+              )
+            }
               </View>
             </TouchableOpacity>
-          )
-        }}
-      />
+            
+            )
+          }}
+        />
+      </View>
     </View>;
 
-    let response = moreProd.length > 0 ? result : <View style={{ flex: 1 }}>
-      <Text style={{
-        color: COLORS.black,
-        fontSize: 14,
-        fontFamily: 'regular',
-        textAlign: 'center'
-      }}>No record found</Text></View>;
+    let response = data.length > 0 && result;
 
-    response = result
+    // response = featureLoading ? <ActivityIndicator size="large" color="blue" /> : result
+    // response = result
     return (
       response
     );
@@ -2081,7 +1366,7 @@ const HomeV2 = ({ navigation }) => {
             flexDirection: 'row',
             alignItems: 'center'
           }}>
-            <TouchableOpacity onPress={() => navigation.openDrawer()}  // Ensure navigation works
+            <TouchableOpacity onPress={() => navigation.openDrawer()}
               style={{
                 height: 45,
                 width: 45,
@@ -2100,7 +1385,7 @@ const HomeV2 = ({ navigation }) => {
               marginLeft: 12
             }}>
               <Text style={{
-                fontSize: 18,
+                fontSize: 12,
                 fontWeight: 'bold',
                 color: COLORS.primary
               }}>Veggie King</Text>
@@ -2117,10 +1402,15 @@ const HomeV2 = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Content and other render methods */}
+        {
+          screenLoading ?
+            <ActivityIndicator size="large" color="blue" /> : null
+        }
+
         <ScrollView showsVerticalScrollIndicator={false} style={{ marginBottom: "15%" }}>
           {renderCarousel()}
           {renderCategories()}
+          {/* {renderFeatureProducts()} */}
           {renderVerticalProducts(2, "Vegetables", vegetables)}
           {renderVerticalProducts(1, "Fruits", fruits)}
           {renderVerticalProducts(8, "Dry Fruits", dryFruits)}
@@ -2130,14 +1420,17 @@ const HomeV2 = ({ navigation }) => {
           {renderVerticalProducts(14, "Meat", meat)}
           {renderVerticalProducts(15, "Milk", milk)}
           {renderVerticalProducts(16, "Desi Chakki Aata", aata)}
+          {/* {featureProducts()} */}
+          {/* {renderVegetables()} */}
+          {/* {renderProducts("Vegetables", "vegetables", vegetables)} */}
+          {/* {renderProducts("Fruits", "fruits", fruits, true)} */}
         </ScrollView>
       </View>
-      {/* <CustomModal heading={notificationData.heading} body={notificationData.body} body2={notificationData.body2}
+      <CustomModal heading={notificationData.heading} body={notificationData.body} body2={notificationData.body2}
         button={notificationData.button}
         modalVisible={modalVisible} setModalVisible={setModalVisible} onPressGotIt={handlePressGotIt}
-      /> */}
+      />
     </SafeAreaView>
-   
   )
 }
 
@@ -2145,7 +1438,21 @@ const styles = StyleSheet.create({
   area: {
     flex: 1,
     backgroundColor: COLORS.white
-  }
+  },
+  outOfStockBadge: {
+    backgroundColor: 'red',
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    alignSelf: 'flex-start', // Align the badge to the start of the container
+    marginVertical: 5, // Add some spacing around the badge
+},
+outOfStockText: {
+    color: 'white',
+    fontSize: 14,
+    fontFamily: 'bold', // Ensure you have the custom font set up, or use a system font
+    textAlign: 'center',
+},
 })
 
 export default HomeV2
